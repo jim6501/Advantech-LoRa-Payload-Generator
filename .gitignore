@@ -1,0 +1,6 @@
+# Ignore reference materials
+reference/
+
+# OS generated files
+.DS_Store
+Thumbs.db
