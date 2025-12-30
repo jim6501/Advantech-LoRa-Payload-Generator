@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advantech Payload Formatter v4.5</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+    <div class="sidebar">
+        <div class="p-4 mb-2 border-bottom border-secondary" style="border-color: #30363d !important;">
+            <div class="d-flex align-items-center">
+                <i class="fa-solid fa-satellite-dish me-2 text-white" style="font-size: 1.5rem;"></i>
+                <div class="ms-3">
+                    <h5 class="mb-0 fw-bold">Payload Formatter</h5>
+                    <small class="text-secondary" style="font-size: 0.75rem;">v0.45 (Beta Test)</small>
+                </div>
+            </div>
+        </div>
+        <div class="nav-item active" onclick="switchTab('uplink')" id="nav-uplink">
+            <i class="fa-solid fa-arrow-up"></i> Uplink Parser
+        </div>
+        <div class="nav-item" onclick="switchTab('downlink')" id="nav-downlink">
+            <i class="fa-solid fa-paper-plane"></i> Downlink Gen
+        </div>
+    </div>
+
+    <div class="main-content">
+
+        <!-- Uplink Parser -->
+        <div id="view-uplink">
+            <h3 class="mb-4">Uplink Payload Parser</h3>
+            <div class="row">
+                <div class="col-lg-5">
+                    <div class="custom-card mb-4">
+                        <div class="card-header">Input</div>
+                        <div class="card-body">
+                            <label class="text-secondary mb-2">Hex String</label>
+                            <textarea class="form-control" id="upHexInput" rows="6" placeholder="811C40..."></textarea>
+                            <button class="btn btn-primary w-100 mt-3" onclick="runParser()">Parse</button>
+                            <button class="btn btn-outline-secondary w-100 mt-2" onclick="loadUpExample()">Load
+                                Example</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-7">
+                    <div class="custom-card h-100">
+                        <div class="card-header">
+                            JSON Result
+                            <button class="btn btn-sm btn-outline-secondary"
+                                onclick="copyText('upOutput')">Copy</button>
+                        </div>
+                        <div class="card-body p-0">
+                            <pre id="upOutput" class="h-100 border-0 rounded-0 m-0">Waiting...</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Downlink Generator -->
+        <div id="view-downlink" style="display: none;">
+            <h3 class="mb-4">Downlink Generator</h3>
+            <div class="row">
+                <div class="col-lg-5">
+                    <div class="custom-card h-100">
+                        <div class="card-header">Configuration</div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="text-secondary mb-2">1. Category</label>
+                                <select class="form-select" id="genType">
+                                    <option value="0x5" selected>Sensor (Temp/Accel) [0x5]</option>
+                                    <option value="0x6">Device (System/RTC) [0x6]</option>
+                                    <option value="0x8">RS-485 Register [0x8]</option>
+                                    <option value="0x7">RS-485 Coil [0x7]</option>
+                                    <option value="0x0">DI (Digital Input) [0x0]</option>
+                                    <option value="0x1">DO (Digital Output) [0x1]</option>
+                                    <option value="0x3">AI (Analog Input) [0x3]</option>
+                                </select>
+                            </div>
+
+                            <!-- Sub-Type Selectors -->
+                            <div class="mb-3" id="sensorRangeGroup">
+                                <label class="text-secondary mb-2">Sensor Range</label>
+                                <select class="form-select" id="sensorRange">
+                                    <option value="0">Temperature / Humidity (0x0-0x3)</option>
+                                    <option value="4">Accelerometer / Vibration (0x4-0x5)</option>
+                                </select>
+                            </div>
+
+                            <!-- RS-485 Specifics -->
+                            <div class="row g-2 mb-3" id="portGroup" style="display:none;">
+                                <div class="col-6">
+                                    <label class="text-secondary mb-2">COM Port</label>
+                                    <select class="form-select" id="genPort">
+                                        <option value="0">Port 1</option>
+                                        <option value="1">Port 2</option>
+                                    </select>
+                                </div>
+                                <div class="col-6">
+                                    <label class="text-secondary mb-2">Channel/Rule</label>
+                                    <input type="number" class="form-control" id="genCh485" value="0" min="0" max="127">
+                                </div>
+                            </div>
+
+                            <!-- Standard Channel -->
+                            <div class="mb-3" id="channelGroup">
+                                <label class="text-secondary mb-2">Channel</label>
+                                <input type="number" class="form-control" id="genCh" value="0" min="0" max="15">
+                                <div class="form-text small" id="chHint"></div>
+                            </div>
+
+                            <!-- Axis Selection (Accel) -->
+                            <div class="mb-3" id="axisGroup" style="display:none;">
+                                <label class="text-secondary mb-2">Target Axes (Generates Mask)</label>
+                                <div class="d-flex gap-3">
+                                    <div class="form-check"><input class="form-check-input" type="checkbox" id="axisX"
+                                            checked><label class="form-check-label text-light">X</label></div>
+                                    <div class="form-check"><input class="form-check-input" type="checkbox" id="axisY"
+                                            checked><label class="form-check-label text-light">Y</label></div>
+                                    <div class="form-check"><input class="form-check-input" type="checkbox" id="axisZ"
+                                            checked><label class="form-check-label text-light">Z</label></div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="text-secondary mb-2">2. Command</label>
+                                <select class="form-select" id="genCmd"></select>
+                            </div>
+
+                            <div id="genParamArea" class="mb-4"></div>
+
+                            <div class="border-top border-secondary pt-3 mt-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <label class="text-secondary m-0">Sequence No.</label>
+                                    <input type="number" class="form-control form-control-sm w-25" id="genSeq"
+                                        value="0">
+                                </div>
+                            </div>
+
+                            <button class="btn btn-primary w-100 mt-2" onclick="runGenerator()">Generate Hex</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-7">
+                    <div class="custom-card">
+                        <div class="card-header">
+                            Output
+                            <button class="btn btn-sm btn-outline-secondary"
+                                onclick="copyText('genOutput')">Copy</button>
+                        </div>
+                        <div class="card-body py-4">
+                            <label class="text-secondary mb-2">Protocol Structure</label>
+                            <div id="genStructure" class="mb-3">
+                                <span class="text-muted small">Select parameters and click Generate...</span>
+                            </div>
+
+                            <label class="text-secondary mb-2">Generated Hex String</label>
+                            <div class="gen-output mb-3" id="genOutput">Waiting...</div>
+
+                            <div class="border-top border-secondary pt-3 text-start">
+                                <label class="text-secondary small mb-2">Breakdown:</label>
+                                <div class="text-secondary small font-monospace" id="genBreakdown"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/parser.js"></script>
+    <script src="js/generator.js"></script>
+    <script src="js/main.js"></script>
+
+</body>
+
+</html>
