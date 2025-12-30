@@ -1,4 +1,4 @@
-# Advantech LoRa Payload Generator (Beta Test v0.45)
+# Advantech LoRa Payload Generator (Beta Test v0.4)
 
 A web-based tool for manipulating Advantech LoRaWAN payloads. This application provides two main functions:
 1.  **Uplink Parser**: Decodes raw hexadecimal uplink payloads into human-readable JSON.
