@@ -22,9 +22,15 @@ A web-based tool for manipulating Advantech LoRaWAN payloads. This application p
     -   **Mask Calculation**: Automatically calculates complex bitmasks for Accelerometer Axes (Z/Y/X mapping).
 -   **Feature Support**: Expanded options for "Enable Features" including Kurtosis, Skewness, and Crest Factor.
 
+
+## Docs and Links
+-   Original project: https://github.com/jim6501/Advantech-LoRa-Payload-Generator
+-   Project demo: https://jim6501.github.io/Advantech-LoRa-Payload-Generator/
+
+
 ## Usage
 
-1.  Open `index.html` in any modern web browser.
+1.  Open 'index.html' in any modern browser or follow the 'Project demo' link to access the Web Tool Page.
 2.  **Uplink Parsing**:
     -   Copy your LoRaWAN Hex Payload.
     -   Paste it into the "Input Hex String" box in the **Uplink Parser** tab.
@@ -54,3 +60,4 @@ A web-based tool for manipulating Advantech LoRaWAN payloads. This application p
 -   **[Enhancement]** Repositioned **Copy Button** to the right of the generated hex string for better accessibility.
 -   **[Fix]** Corrected bit-order for Accelerometer Axis Mask (Z=Bit7, Y=Bit6, X=Bit5).
 -   **[Fix]** Restored ability to select specific Axes for Accelerometer commands.
+
