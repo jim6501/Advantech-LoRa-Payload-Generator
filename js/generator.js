@@ -38,7 +38,7 @@ const DownlinkGenerator = {
         "0x5_4": { // Sensor (Accel)
             "1": { name: "Clear Vel. RMS Alarm", type: "fixed", val: 0, len: 1, cmdId: 1 },
             "5": { name: "Set Vel. RMS Limit", type: "float", scale: 100, len: 4, desc: "Value * 100 (Unit: 0.01 mm/s)", cmdId: 5, max: 42949672.95 },
-            "9": { name: "Get Log (Msve Data)", type: "number", len: 4, desc: "Log Index (0xFFFFFFFF = Latest)", cmdId: 9 },
+            "9": { name: "Get Log (Massive Data)", type: "number", len: 4, desc: "Log Index (0xFFFFFFFF = Latest)", cmdId: 9 },
             "10": { name: "Read Log Part", type: "composite", parts: [{ id: "idx", type: "number", len: 4, label: "Idx" }, { id: "n", type: "number", len: 2, label: "N (Bytes)" }, { id: "k", type: "number", len: 2, label: "K" }], cmdId: 10 },
             "11": { name: "Get Log (UTC)", type: "composite", parts: [{ id: "idx", type: "number", len: 4, label: "Idx" }, { id: "utc", type: "datetime", len: 4, label: "UTC" }], cmdId: 11 },
             "12": { name: "Enable Features", type: "bitmask", len: 2, options: [{ b: 4, l: "Displacement" }, { b: 3, l: "Standard Deviation" }, { b: 2, l: "Skewness" }, { b: 1, l: "Crest Factor" }, { b: 0, l: "Kurtosis" }], desc: "Enable specific features (Bit 4-0)", cmdId: 12, max: 65535 },
