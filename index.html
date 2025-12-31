@@ -21,7 +21,7 @@
                 <i class="fa-solid fa-satellite-dish me-2 text-white" style="font-size: 1.5rem;"></i>
                 <div class="ms-3">
                     <h5 class="mb-0 fw-bold">Payload Formatter</h5>
-                    <small class="text-secondary" style="font-size: 0.75rem;">v0.45 (Beta Test)</small>
+                    <small class="text-secondary" style="font-size: 0.75rem;">v0.5 (Beta Test)</small>
                 </div>
             </div>
         </div>
@@ -155,8 +155,7 @@
                     <div class="custom-card">
                         <div class="card-header">
                             Output
-                            <button class="btn btn-sm btn-outline-secondary"
-                                onclick="copyText('genOutput')">Copy</button>
+                            <!-- Copy moved to below -->
                         </div>
                         <div class="card-body py-4">
                             <label class="text-secondary mb-2">Protocol Structure</label>
@@ -165,7 +164,13 @@
                             </div>
 
                             <label class="text-secondary mb-2">Generated Hex String</label>
-                            <div class="gen-output mb-3" id="genOutput">Waiting...</div>
+                            <div class="d-flex gap-2 mb-3">
+                                <div class="gen-output flex-grow-1 mb-0" id="genOutput">Waiting...</div>
+                                <button class="btn btn-outline-secondary" onclick="copyText('genOutput')"
+                                    title="Copy to Clipboard">
+                                    <i class="fa-regular fa-copy"></i>
+                                </button>
+                            </div>
 
                             <div class="border-top border-secondary pt-3 text-start">
                                 <label class="text-secondary small mb-2">Breakdown:</label>

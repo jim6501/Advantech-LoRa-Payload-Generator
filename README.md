@@ -1,4 +1,4 @@
-# Advantech LoRa Payload Generator (Beta Test v0.4)
+# Advantech LoRa Payload Generator (Beta Test v0.5)
 
 A web-based tool for manipulating Advantech LoRaWAN payloads. This application provides two main functions:
 1.  **Uplink Parser**: Decodes raw hexadecimal uplink payloads into human-readable JSON.
@@ -45,10 +45,12 @@ A web-based tool for manipulating Advantech LoRaWAN payloads. This application p
 -   `js/generator.js`: Downlink logic, command definitions, and checksum calculation.
 -   `js/parser.js`: Official uplink parsing logic (Vendor supplied).
 
-## Recent Updates (v0.45 Beta)
+## Recent Updates (v0.5 Beta)
 
 -   **[Feature]** Added "Hex/Dec" toggle for all numeric inputs.
 -   **[Enhancement]** Implemented strict input validation with "Max Value" warnings.
 -   **[Enhancement]** Fixed "Sensor (0x5)" inputs: Channel/Mask locked to 0 where applicable.
 -   **[Enhancement]** Optimized Protocol Structure display to match official documentation style.
+-   **[Enhancement]** Repositioned **Copy Button** to the right of the generated hex string for better accessibility.
 -   **[Fix]** Corrected bit-order for Accelerometer Axis Mask (Z=Bit7, Y=Bit6, X=Bit5).
+-   **[Fix]** Restored ability to select specific Axes for Accelerometer commands.
