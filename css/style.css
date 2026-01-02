@@ -115,6 +115,12 @@ input:disabled {
     color: var(--text-secondary);
 }
 
+.form-control::placeholder {
+    color: rgba(255, 255, 255, 0.7) !important;
+    opacity: 1;
+    /* Firefox override */
+}
+
 .fmt-select {
     max-width: 80px;
     font-size: 0.85em;

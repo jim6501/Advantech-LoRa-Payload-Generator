@@ -414,7 +414,10 @@ function switchTab(t) {
     document.getElementById('nav-' + t).classList.add('active');
     document.getElementById('view-uplink').style.display = t === 'uplink' ? 'block' : 'none';
     document.getElementById('view-downlink').style.display = t === 'downlink' ? 'block' : 'none';
+    document.getElementById('view-mac').style.display = t === 'mac' ? 'block' : 'none';
+
     if (t === 'downlink') updateGenCommands();
+    if (t === 'mac') updateMacCommands();
 }
 
 function copyText(id) {
@@ -437,3 +440,337 @@ document.getElementById('genType').addEventListener('change', updateGenCommands)
 document.getElementById('sensorRange').addEventListener('change', updateGenCommands);
 document.getElementById('genCmd').addEventListener('change', updateGenParams);
 updateGenCommands(); // Init
+
+// --- Decoder Logic ---
+function toggleDlMode() {
+    let mode = document.querySelector('input[name="dlMode"]:checked').id;
+    let isGen = (mode === 'modeGen');
+
+    // Toggle Inputs
+    document.getElementById('dl-generator-view').style.display = isGen ? 'block' : 'none';
+    document.getElementById('dl-decoder-view').style.display = isGen ? 'none' : 'block';
+
+    // Toggle Outputs
+    document.getElementById('dl-gen-output-area').style.display = isGen ? 'block' : 'none';
+    document.getElementById('dl-dec-output-area').style.display = isGen ? 'none' : 'block';
+}
+
+function runDecoder() {
+    let hex = document.getElementById('decHexInput').value.trim();
+    if (!hex) return;
+
+    // Call Decoder
+    let res = DownlinkDecoder.decode(hex);
+
+    let out = document.getElementById('decResult');
+    if (res.error) {
+        out.innerHTML = `<div class="alert alert-danger mb-0"><i class="fa-solid fa-triangle-exclamation me-2"></i>${res.error}</div>`;
+        return;
+    }
+
+    // Render Success
+    let html = `
+    <div class="mb-3">
+        <div class="d-flex align-items-center mb-2">
+            <span class="badge bg-success me-2">Success</span>
+            <span class="fw-bold text-accent">${res.cmdName}</span>
+        </div>
+        <div class="small text-secondary mb-1">
+            <span class="me-3"><i class="fa-solid fa-list me-1"></i>Type: ${res.header.type}</span>
+            <span class="me-3"><i class="fa-solid fa-arrow-down-1-9 me-1"></i>Seq: ${res.header.seq}</span>
+            <span><i class="fa-solid fa-ruler-horizontal me-1"></i>Len: ${res.header.len}</span>
+        </div>
+    </div>
+    
+    <div class="struct-breakdown mb-3">
+        <label class="text-secondary small mb-2">Parameters</label>
+        <div class="table-responsive">
+            <table class="table table-dark table-sm table-borderless mb-0">
+                <tbody>`;
+
+    for (let k in res.params) {
+        if (k.startsWith('_')) continue; // Skip internal meta
+        let val = res.params[k];
+        html += `
+                <tr>
+                    <td class="text-secondary" style="width: 40%;">${k}</td>
+                    <td class="font-monospace text-light">${val}</td>
+                </tr>`;
+    }
+
+    html += `   </tbody>
+            </table>
+        </div>
+    </div>`;
+
+    if (res.params._target) {
+        html += `<div class="alert alert-dark small mb-0"><i class="fa-solid fa-crosshairs me-2"></i>Target: ${res.params._target}</div>`;
+    }
+
+    out.innerHTML = html;
+}
+
+function clearDecoder() {
+    document.getElementById('decHexInput').value = '';
+    document.getElementById('decResult').innerHTML = '<pre class="mb-0 border-0 bg-transparent p-0 text-light font-monospace">Enter Hex and click Decode...</pre>';
+}
+
+function clearParser() {
+    document.getElementById('upHexInput').value = '';
+    let upOut = document.getElementById('upOutput');
+    upOut.innerText = 'Enter Hex string and click Parse...';
+    upOut.classList.remove('text-muted'); // Ensure it's not muted if added elsewhere
+    upOut.classList.add('text-light');
+}
+
+
+// --- MAC Analysis Logic ---
+
+function toggleMacMode() {
+    let mode = document.querySelector('input[name="macMode"]:checked').id;
+    let isGen = (mode === 'macModeGen');
+
+    document.getElementById('mac-gen-view').style.display = isGen ? 'block' : 'none';
+    document.getElementById('mac-dec-view').style.display = isGen ? 'none' : 'block';
+
+    document.getElementById('mac-gen-output-area').style.display = isGen ? 'block' : 'none';
+    document.getElementById('mac-dec-output-area').style.display = isGen ? 'none' : 'block';
+}
+
+function updateMacCommands() {
+    let dir = document.getElementById('macGenDir').value; // 'up' or 'down'
+    let isUplink = (dir === 'up');
+    let select = document.getElementById('macGenCmd');
+    select.innerHTML = '';
+
+    Object.keys(MacCmd.DEFS).forEach(cid => {
+        let def = MacCmd.DEFS[cid];
+        let opt = document.createElement('option');
+        opt.value = cid;
+        opt.innerText = `${cid} - ${def.name}`;
+        select.appendChild(opt);
+    });
+
+    updateMacParams();
+}
+
+function updateMacParams() {
+    let cid = document.getElementById('macGenCmd').value;
+    let dir = document.getElementById('macGenDir').value;
+    let isUplink = (dir === 'up');
+    let container = document.getElementById('macGenParamArea');
+    container.innerHTML = '';
+
+    let html = '';
+
+    if (isUplink) {
+        // --- UPLINK (ANSTERS) ---
+        if (cid === '0x02') { // LinkCheckAns -> Error: LinkCheckReq(Up) has NO payload.
+            html = '<div class="text-secondary small">No parameters for LinkCheckReq (Uplink).</div>';
+        }
+        else if (cid === '0x03' || cid === '0x05' || cid === '0x07' || cid === '0x0A') { // Status
+            html += createCheck('ack1', 'Power ACK');
+            html += createCheck('ack2', 'Data Rate ACK');
+            html += createCheck('ack3', 'Channel Mask/Freq ACK');
+        }
+        else if (cid === '0x06') { // DevStatusAns
+            html += createNumInput('battery', 'Battery (0=Ext, 255=Unk)', 0, 255, 255);
+            html += createNumInput('margin', 'SNR Margin (-32..31)', -32, 31, 0);
+        }
+        else if (cid === '0x0D') { // DeviceTimeReq
+            html = '<div class="text-secondary small">No parameters for DeviceTimeReq (Uplink).</div>';
+        }
+    } else {
+        // --- DOWNLINK (REQUESTS) ---
+        if (cid === '0x02') { // LinkCheckAns
+            html += createNumInput('margin', 'Margin (dB)', 0, 255, 10);
+            html += createNumInput('gwCnt', 'Gateway Count', 0, 255, 1);
+        }
+        else if (cid === '0x03') { // LinkADRReq
+            html += createNumInput('dr', 'Data Rate (0-15)', 0, 15, 0);
+            html += createNumInput('txPower', 'TX Power (0-15)', 0, 15, 0);
+
+            // ChMaskCntl Select
+            html += `<div class="mb-2">
+                <label class="form-label small">ChMaskCntl (Region Control)</label>
+                <select class="form-select form-select-sm" id="mac_chMaskCntl">
+                    <option value="0">0: Ch 0-15 (EU868/US915)</option>
+                    <option value="1">1: Ch 16-31 (US915/CN470)</option>
+                    <option value="2">2: Ch 32-47</option>
+                    <option value="3">3: Ch 48-63</option>
+                    <option value="4">4: Ch 64-79</option>
+                    <option value="5">5: Ch 80-95</option>
+                    <option value="6">6: All Channels ON</option>
+                    <option value="7">7: RFU</option>
+                </select>
+            </div>`;
+
+            // ChMask UI
+            html += `<div class="mb-2">
+                <label class="form-label small">Channel Mask (16-bit)</label>
+                <input type="text" class="form-control form-control-sm mb-2 font-monospace" id="mac_chMask" value="0000" onkeyup="syncChMask(this.value)">
+                <div class="d-flex flex-wrap gap-1 p-2 border border-secondary rounded bg-darker">
+                    ${[...Array(16)].map((_, i) => `
+                        <div class="form-check form-check-inline m-0 me-1" style="width: 2.5rem;">
+                            <input class="form-check-input" type="checkbox" id="ch_mask_${i}" onchange="updateChMaskHex()" style="transform: scale(0.8);">
+                            <label class="form-check-label" style="font-size: 0.7rem;" for="ch_mask_${i}">${i}</label>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>`;
+
+            html += createNumInput('nbTrans', 'NbTrans (0-15)', 0, 15, 1);
+        }
+        else if (cid === '0x04') { // DutyCycleReq
+            html += createNumInput('maxDC', 'MaxDC (0-15)', 0, 15, 0);
+        }
+        else if (cid === '0x05') { // RXParamSetupReq
+            html += createNumInput('rx1DrOff', 'RX1 DR Offset (0-7)', 0, 7, 0);
+            html += createNumInput('rx2DataRate', 'RX2 Data Rate (0-15)', 0, 15, 0);
+            html += createNumInput('freq', 'Frequency (Hz/100)', 0, 16777215, 8681000);
+        }
+        else if (cid === '0x07') { // NewChannelReq
+            html += createNumInput('chIndex', 'Channel Index', 0, 255, 3);
+            html += createNumInput('freq', 'Frequency (Hz/100)', 0, 16777215, 8681000);
+            html += createNumInput('minDr', 'Min Data Rate (0-15)', 0, 15, 0);
+            html += createNumInput('maxDr', 'Max Data Rate (0-15)', 0, 15, 5);
+        }
+        else if (cid === '0x08') { // RXTimingSetupReq
+            html += createNumInput('delay', 'Delay (1-15 sec)', 0, 15, 1);
+        }
+        else if (cid === '0x09') { // TXParamSetupReq
+            html += createCheck('dlDwell', 'DownlinkDwell');
+            html += createCheck('ulDwell', 'UplinkDwell');
+            html += createNumInput('maxEirp', 'MaxEIRP (0-15)', 0, 15, 0);
+        }
+        else if (cid === '0x0A') { // DlChannelReq
+            html += createNumInput('chIndex', 'Channel Index', 0, 255, 3);
+            html += createNumInput('freq', 'Frequency (Hz/100)', 0, 16777215, 8681000);
+        }
+        else if (cid === '0x0D') { // DeviceTimeAns
+            html += createNumInput('seconds', 'GPS Seconds', 0, 4294967295, 0);
+            html += createNumInput('frac', 'Fraction (1/256)', 0, 255, 0);
+        }
+    }
+
+    container.innerHTML = html;
+}
+
+function createNumInput(id, label, min, max, def, isHex = false) {
+    return `<div class="mb-2">
+        <label class="form-label small">${label}</label>
+        <input type="${isHex ? 'text' : 'number'}" class="form-control form-control-sm" id="mac_${id}" value="${def}" 
+        ${isHex ? 'placeholder="0xFFFF"' : `min="${min}" max="${max}"`}>
+    </div>`;
+}
+
+function createCheck(id, label) {
+    return `<div class="form-check">
+        <input class="form-check-input" type="checkbox" id="mac_${id}">
+        <label class="form-check-label small" for="mac_${id}">${label}</label>
+    </div>`;
+}
+
+
+function runMacGenerator() {
+    let cid = document.getElementById('macGenCmd').value;
+    let dir = document.getElementById('macGenDir').value;
+    let isUplink = (dir === 'up');
+
+    let params = {};
+    let inputs = document.getElementById('macGenParamArea').querySelectorAll('input, select');
+    inputs.forEach(input => {
+        // Skip internal helpers (like checkbox grid items) if they don't look like params
+        // My implementation mostly named them mac_{paramName}.
+        // The checkboxes are named ch_mask_{i}, which don't start with mac_.
+        if (!input.id.startsWith('mac_')) return;
+
+        let key = input.id.replace('mac_', '');
+
+        if (input.tagName === 'SELECT') {
+            params[key] = parseInt(input.value);
+        }
+        else if (input.type === 'checkbox') {
+            params[key] = input.checked;
+        }
+        else {
+            if (input.type === 'text') params[key] = parseInt(input.value, 16);
+            else params[key] = parseInt(input.value);
+        }
+    });
+
+    let hex = MacCmd.generate(cid, isUplink, params);
+    if (hex.error) {
+        document.getElementById('macGenOutput').innerText = "Error: " + hex.error;
+    } else {
+        document.getElementById('macGenOutput').innerText = hex;
+    }
+}
+
+function runMacDecoder() {
+    let hex = document.getElementById('macDecInput').value;
+    let dir = document.getElementById('macDecDir').value;
+    // let isUplink = (dir === 'up'); // Fixed context?
+    let isUplink = (dir === 'up');
+
+    let res = MacCmd.decode(hex, isUplink);
+
+    let html = '';
+    if (res.error) {
+        html += `<div class="alert alert-danger p-2 mb-2"><i class="fa-solid fa-triangle-exclamation"></i> ${res.error}</div>`;
+    }
+
+    if (res.commands.length === 0 && !res.error) {
+        html += `<div class="text-secondary">No commands found.</div>`;
+    }
+
+    res.commands.forEach(cmd => {
+        html += `<div class="mb-3 border-bottom border-secondary pb-2">
+            <div class="d-flex justify-content-between">
+                <strong>${cmd.name}</strong>
+                <span class="badge bg-secondary">${cmd.cid}</span>
+            </div>
+            <div class="small font-monospace text-muted mt-1">Raw: ${MacCmd.toHex(0, 0)} ${cmd.raw.map(b => b.toString(16).toUpperCase().padStart(2, '0')).join(' ')}</div>
+            <div class="mt-2">`;
+
+        if (Object.keys(cmd.params).length > 0) {
+            html += `<table class="table table-dark table-sm table-borderless small mb-0">`;
+            for (let k in cmd.params) {
+                html += `<tr><td class="text-secondary w-50">${k}</td><td class="font-monospace text-light">${cmd.params[k]}</td></tr>`;
+            }
+            html += `</table>`;
+        } else html += `<span class="text-secondary small">Empty</span>`;
+
+        html += `</div></div>`;
+    });
+
+    document.getElementById('macDecResult').innerHTML = html;
+}
+
+function clearMacDecoder() {
+    document.getElementById('macDecInput').value = '';
+    document.getElementById('macDecResult').innerHTML = '<pre class="mb-0 border-0 bg-transparent p-0 text-light font-monospace">Enter Hex and click Decode...</pre>';
+}
+
+function updateChMaskHex() {
+    let mask = 0;
+    for (let i = 0; i < 16; i++) {
+        let cb = document.getElementById(`ch_mask_${i}`);
+        if (cb && cb.checked) {
+            mask |= (1 << i);
+        }
+    }
+    document.getElementById('mac_chMask').value = mask.toString(16).toUpperCase().padStart(4, '0');
+}
+
+function syncChMask(hex) {
+    let mask = parseInt(hex, 16);
+    if (isNaN(mask)) return;
+    for (let i = 0; i < 16; i++) {
+        let cb = document.getElementById(`ch_mask_${i}`);
+        if (cb) {
+            cb.checked = !!(mask & (1 << i));
+        }
+    }
+}
+
