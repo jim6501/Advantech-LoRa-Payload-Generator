@@ -526,6 +526,12 @@ function clearParser() {
 
 // --- MAC Analysis Logic ---
 
+function copyMacOutput() {
+    let mode = document.querySelector('input[name="macMode"]:checked').id;
+    let isGen = (mode === 'macModeGen');
+    copyText(isGen ? 'macGenOutput' : 'macDecResult');
+}
+
 function toggleMacMode() {
     let mode = document.querySelector('input[name="macMode"]:checked').id;
     let isGen = (mode === 'macModeGen');
@@ -727,7 +733,7 @@ function runMacDecoder() {
     res.commands.forEach(cmd => {
         html += `<div class="mb-3 border-bottom border-secondary pb-2">
             <div class="d-flex justify-content-between">
-                <strong>${cmd.name}</strong>
+                <strong class="text-success">${cmd.name}</strong>
                 <span class="badge bg-secondary">${cmd.cid}</span>
             </div>
             <div class="small font-monospace text-muted mt-1">Raw: ${MacCmd.toHex(0, 0)} ${cmd.raw.map(b => b.toString(16).toUpperCase().padStart(2, '0')).join(' ')}</div>
