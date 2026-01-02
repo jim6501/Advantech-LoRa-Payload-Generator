@@ -113,12 +113,12 @@ graph TD
     end
 
     subgraph "Controller Layer"
-        MainJS[js/main.js<br/>(UI Controller)]
+        MainJS["js/main.js<br/>(UI Controller)"]
     end
 
     subgraph "Business Logic Layer (Model)"
-        ParserJS[js/parser.js<br/>(Uplink Decoder)]
-        GenJS[js/generator.js<br/>(Downlink Generator)]
+        ParserJS["js/parser.js<br/>(Uplink Decoder)"]
+        GenJS["js/generator.js<br/>(Downlink Generator)"]
     end
 
     %% Styles
