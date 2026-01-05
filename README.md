@@ -1,4 +1,4 @@
-# Advantech LoRa Payload Formatter v0.7
+# Advantech LoRa Payload Formatter v0.71
 
 A web-based tool for manipulating Advantech LoRaWAN payloads. This application provides three main functions:
 1.  **Uplink Parser**: Decodes raw hexadecimal uplink payloads into human-readable JSON.
@@ -46,7 +46,17 @@ A web-based tool for manipulating Advantech LoRaWAN payloads. This application p
 -   `js/mac_cmd.js`: MAC Command definitions, generation, and parsing logic.
 -   `js/parser.js`: Official uplink parsing logic (Vendor supplied).
 
-## Recent Updates (v0.7)
+## Recent Updates (v0.71)
+
+-   **[UI]** **Standardized Output UI**:
+    -   Unified "Output Result" styling across Uplink Parser, Downlink Decoder, and MAC Decoder.
+    -   Consistent placeholder text ("Enter Hex string and click Parse/Decode...") and edge-to-edge dark styling with padding.
+    -   Aligned MAC Decoder output height with Downlink Decoder.
+-   **[Feature]** **Smart Paste**:
+    -   Added Paste buttons (<i class="fa-regular fa-paste"></i>) to all input fields (Uplink, Downlink Decoder, MAC Decoder).
+    -   Added clear feedback (Toast notifications) for Paste and Copy actions.
+
+## Previous Updates (v0.7)
 
 -   **[Feature]** Added **MAC Command Analysis** tab.
     -   Includes Generator and Decoder for LoRaWAN 1.0.4 MAC Commands.

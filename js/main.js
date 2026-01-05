@@ -545,14 +545,14 @@ function runDecoder() {
 
 function clearDecoder() {
     document.getElementById('decHexInput').value = '';
-    document.getElementById('decResult').innerHTML = '<pre class="mb-0 border-0 bg-transparent p-0 text-light font-monospace">Enter Hex and click Decode...</pre>';
+    document.getElementById('decResult').innerHTML = '<pre class="h-100 border-0 rounded-0 m-0 bg-transparent p-0 text-light font-monospace">Enter Hex string and click Decode...</pre>';
 }
 
 function clearParser() {
     document.getElementById('upHexInput').value = '';
     let upOut = document.getElementById('upOutput');
-    upOut.innerHTML = 'Enter Hex and click Parse...';
-    upOut.className = 'mb-0 border-0 bg-transparent p-0 text-light font-monospace';
+    upOut.innerHTML = 'Enter Hex string and click Parse...';
+    upOut.className = 'h-100 border-0 rounded-0 m-0 bg-transparent p-3 text-light font-monospace';
 }
 
 
@@ -784,7 +784,7 @@ function runMacDecoder() {
 
 function clearMacDecoder() {
     document.getElementById('macDecInput').value = '';
-    document.getElementById('macDecResult').innerHTML = '<pre class="mb-0 border-0 bg-transparent p-0 text-light font-monospace">Enter Hex and click Decode...</pre>';
+    document.getElementById('macDecResult').innerHTML = '<pre class="h-100 border-0 rounded-0 m-0 bg-transparent p-0 text-light font-monospace">Enter Hex string and click Decode...</pre>';
 }
 
 function updateChMaskHex() {
