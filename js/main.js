@@ -420,8 +420,41 @@ function switchTab(t) {
     if (t === 'mac') updateMacCommands();
 }
 
+function showToast(message) {
+    let container = document.getElementById('toast-container');
+    if (!container) return; // Should exist
+
+    let el = document.createElement('div');
+    el.className = 'custom-toast';
+    el.innerHTML = `<i class="fa-solid fa-check-circle me-2"></i> ${message}`;
+
+    container.appendChild(el);
+
+    // Remove after animation (2.5s)
+    setTimeout(() => {
+        el.remove();
+    }, 2500);
+}
+
 function copyText(id) {
-    navigator.clipboard.writeText(document.getElementById(id).innerText);
+    let text = document.getElementById(id).innerText;
+    navigator.clipboard.writeText(text).then(() => {
+        showToast("Copied to clipboard!");
+    }).catch(err => {
+        console.error('Failed to copy: ', err);
+        showToast("Failed to copy!");
+    });
+}
+
+async function pasteText(id) {
+    try {
+        const text = await navigator.clipboard.readText();
+        document.getElementById(id).value = text;
+        showToast("Pasted from clipboard!");
+    } catch (err) {
+        console.error('Failed to paste: ', err);
+        showToast("Failed to paste! (Allow access?)");
+    }
 }
 
 function initDates() {
@@ -733,7 +766,7 @@ function runMacDecoder() {
     res.commands.forEach(cmd => {
         html += `<div class="mb-3 border-bottom border-secondary pb-2">
             <div class="d-flex justify-content-between">
-                <strong class="text-success">${cmd.name}</strong>
+                <strong class="text-accent">${cmd.name}</strong>
                 <span class="badge bg-secondary">${cmd.cid}</span>
             </div>
             <div class="small font-monospace text-muted mt-1">Raw: ${MacCmd.toHex(0, 0)} ${cmd.raw.map(b => b.toString(16).toUpperCase().padStart(2, '0')).join(' ')}</div>
