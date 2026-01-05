@@ -551,9 +551,8 @@ function clearDecoder() {
 function clearParser() {
     document.getElementById('upHexInput').value = '';
     let upOut = document.getElementById('upOutput');
-    upOut.innerText = 'Enter Hex string and click Parse...';
-    upOut.classList.remove('text-muted'); // Ensure it's not muted if added elsewhere
-    upOut.classList.add('text-light');
+    upOut.innerHTML = 'Enter Hex and click Parse...';
+    upOut.className = 'mb-0 border-0 bg-transparent p-0 text-light font-monospace';
 }
 
 
