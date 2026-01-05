@@ -559,11 +559,7 @@ function clearParser() {
 
 // --- MAC Analysis Logic ---
 
-function copyMacOutput() {
-    let mode = document.querySelector('input[name="macMode"]:checked').id;
-    let isGen = (mode === 'macModeGen');
-    copyText(isGen ? 'macGenOutput' : 'macDecResult');
-}
+
 
 function toggleMacMode() {
     let mode = document.querySelector('input[name="macMode"]:checked').id;
@@ -764,20 +760,21 @@ function runMacDecoder() {
     }
 
     res.commands.forEach(cmd => {
-        html += `<div class="mb-3 border-bottom border-secondary pb-2">
-            <div class="d-flex justify-content-between">
+        html += `<div class="mb-3 border-bottom border-secondary pb-3 px-1">
+            <div class="d-flex justify-content-between align-items-center mb-2">
                 <strong class="text-accent">${cmd.name}</strong>
                 <span class="badge bg-secondary">${cmd.cid}</span>
             </div>
-            <div class="small font-monospace text-muted mt-1">Raw: ${MacCmd.toHex(0, 0)} ${cmd.raw.map(b => b.toString(16).toUpperCase().padStart(2, '0')).join(' ')}</div>
+            <div class="small font-monospace text-muted mb-2">Raw: ${MacCmd.toHex(0, 0)} ${cmd.raw.map(b => b.toString(16).toUpperCase().padStart(2, '0')).join(' ')}</div>
             <div class="mt-2">`;
 
         if (Object.keys(cmd.params).length > 0) {
-            html += `<table class="table table-dark table-sm table-borderless small mb-0">`;
+            html += `<div class="table-responsive">
+                <table class="table table-dark table-sm table-borderless small mb-0">`;
             for (let k in cmd.params) {
-                html += `<tr><td class="text-secondary w-50">${k}</td><td class="font-monospace text-light">${cmd.params[k]}</td></tr>`;
+                html += `<tr><td class="text-secondary" style="width: 40%;">${k}</td><td class="font-monospace text-light">${cmd.params[k]}</td></tr>`;
             }
-            html += `</table>`;
+            html += `</table></div>`;
         } else html += `<span class="text-secondary small">Empty</span>`;
 
         html += `</div></div>`;
