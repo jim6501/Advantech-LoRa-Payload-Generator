@@ -55,6 +55,10 @@ A web-based tool for manipulating Advantech LoRaWAN payloads. This application p
 -   **[Feature]** **Smart Paste**:
     -   Added Paste buttons (<i class="fa-regular fa-paste"></i>) to all input fields (Uplink, Downlink Decoder, MAC Decoder).
     -   Added clear feedback (Toast notifications) for Paste and Copy actions.
+-   **[Enhancement]** **MAC Improvements**:
+    -   **KHz Units**: MAC Generator frequency inputs (NewChannel, RxParamSetup, DlChannel) now accept **KHz** (e.g., 868100) instead of Hz/100.
+    -   **LinkADR Decoder**: Added "MonitoredChs" field to visualize exactly which channels are enabled (e.g., "0-15" or "All Channels ON").
+    -   **NewChannel Support**: Corrected bit-definitions for `NewChannelAns` (Channel Frequency ACK & Data Rate Range ACK).
 
 ## Previous Updates (v0.7)
 
