@@ -602,10 +602,14 @@ function updateMacParams() {
         if (cid === '0x02') { // LinkCheckAns -> Error: LinkCheckReq(Up) has NO payload.
             html = '<div class="text-secondary small">No parameters for LinkCheckReq (Uplink).</div>';
         }
-        else if (cid === '0x03' || cid === '0x05' || cid === '0x07' || cid === '0x0A') { // Status
+        else if (cid === '0x03' || cid === '0x05' || cid === '0x0A') { // Status (LinkADR, RXParam, DlCh)
             html += createCheck('ack1', 'Power ACK');
             html += createCheck('ack2', 'Data Rate ACK');
             html += createCheck('ack3', 'Channel Mask/Freq ACK');
+        }
+        else if (cid === '0x07') { // NewChannelAns
+            html += createCheck('ack1', 'Channel Frequency ACK');
+            html += createCheck('ack2', 'Data Rate Range ACK');
         }
         else if (cid === '0x06') { // DevStatusAns
             html += createNumInput('battery', 'Battery (0=Ext, 255=Unk)', 0, 255, 255);
@@ -661,11 +665,11 @@ function updateMacParams() {
         else if (cid === '0x05') { // RXParamSetupReq
             html += createNumInput('rx1DrOff', 'RX1 DR Offset (0-7)', 0, 7, 0);
             html += createNumInput('rx2DataRate', 'RX2 Data Rate (0-15)', 0, 15, 0);
-            html += createNumInput('freq', 'Frequency (Hz/100)', 0, 16777215, 8681000);
+            html += createNumInput('freq', 'Frequency (KHz)', 0, 1677721, 868100);
         }
         else if (cid === '0x07') { // NewChannelReq
             html += createNumInput('chIndex', 'Channel Index', 0, 255, 3);
-            html += createNumInput('freq', 'Frequency (Hz/100)', 0, 16777215, 8681000);
+            html += createNumInput('freq', 'Frequency (KHz)', 0, 1677721, 868100);
             html += createNumInput('minDr', 'Min Data Rate (0-15)', 0, 15, 0);
             html += createNumInput('maxDr', 'Max Data Rate (0-15)', 0, 15, 5);
         }
@@ -679,7 +683,7 @@ function updateMacParams() {
         }
         else if (cid === '0x0A') { // DlChannelReq
             html += createNumInput('chIndex', 'Channel Index', 0, 255, 3);
-            html += createNumInput('freq', 'Frequency (Hz/100)', 0, 16777215, 8681000);
+            html += createNumInput('freq', 'Frequency (KHz)', 0, 1677721, 868100);
         }
         else if (cid === '0x0D') { // DeviceTimeAns
             html += createNumInput('seconds', 'GPS Seconds', 0, 4294967295, 0);
@@ -729,7 +733,11 @@ function runMacGenerator() {
         }
         else {
             if (input.type === 'text') params[key] = parseInt(input.value, 16);
-            else params[key] = parseInt(input.value);
+            else {
+                let val = parseInt(input.value);
+                if (key === 'freq') val = val * 10; // KHz -> Hz/100
+                params[key] = val;
+            }
         }
     });
 

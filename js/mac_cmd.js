@@ -165,7 +165,14 @@ const MacCmd = {
                 p.DRAck = (status & 2) ? 1 : 0;
                 p.ChMaskAck = (status & 4) ? 1 : 0;
                 // Note: bits meaning vary slightly by command, but generally ACK bits
-                if (cid === '0x07') { p.DrRangeAck = p.DRAck; delete p.DRAck; delete p.PowerAck; } // NewChannel
+                // Note: bits meaning vary slightly by command, but generally ACK bits
+                if (cid === '0x07') { // NewChannelAns
+                    p.ChannelFreqAck = p.PowerAck;
+                    p.DrRangeAck = p.DRAck;
+                    delete p.PowerAck;
+                    delete p.DRAck; // Data Rate Ack -> DrRangeAck
+                    delete p.ChMaskAck; // RFU
+                }
             }
             else if (cid === '0x06') { // DevStatusAns
                 p.Battery = bytes[0]; // 0=Ext, 255=Unk
@@ -188,9 +195,38 @@ const MacCmd = {
             else if (cid === '0x03') { // LinkADRReq
                 p.DR = (bytes[0] >> 4) & 0xF;
                 p.TXPower = bytes[0] & 0xF;
-                p.ChMask = "0x" + (bytes[1] | (bytes[2] << 8)).toString(16).toUpperCase();
+                let mask = (bytes[1] | (bytes[2] << 8));
+                p.ChMask = "0x" + mask.toString(16).toUpperCase().padStart(4, '0');
                 p.NbTrans = bytes[3] & 0xF;
-                p.ChMaskCntl = (bytes[3] >> 4) & 0x7;
+                let cntl = (bytes[3] >> 4) & 0x7;
+                p.ChMaskCntl = cntl;
+
+                // Interpret Channels
+                if (cntl === 6) {
+                    p.MonitoredChs = "All Channels ON";
+                } else if (cntl <= 4) { // Assume standard 16-ch blocks
+                    let chs = [];
+                    for (let i = 0; i < 16; i++) {
+                        if ((mask >> i) & 1) chs.push(i + (cntl * 16));
+                    }
+                    if (chs.length > 0) {
+                        // Format ranges (e.g. 0-7, 8, 10-12)
+                        let ranges = [], start = chs[0], prev = chs[0];
+                        for (let i = 1; i < chs.length; i++) {
+                            if (chs[i] !== prev + 1) {
+                                ranges.push(start === prev ? start : start + "-" + prev);
+                                start = chs[i];
+                            }
+                            prev = chs[i];
+                        }
+                        ranges.push(start === prev ? start : start + "-" + prev);
+                        p.MonitoredChs = ranges.join(", ");
+                    } else {
+                        p.MonitoredChs = "None (Disable Block)";
+                    }
+                } else {
+                    p.MonitoredChs = "Region Specific";
+                }
             }
             else if (cid === '0x05') { // RXParamSetupReq
                 p.RX1DROffset = (bytes[0] >> 4) & 0x7;
