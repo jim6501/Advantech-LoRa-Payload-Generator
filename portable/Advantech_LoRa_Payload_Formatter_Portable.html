@@ -1,0 +1,3583 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advantech LoRaWAN Payload Formatter v0.8</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600&display=swap"
+        rel="stylesheet">
+    <style>
+:root {
+    --bg-body: #0f1115;
+    --bg-sidebar: #161b22;
+    --bg-card: #1c2128;
+    --bg-input: #0d1117;
+    --border-color: #30363d;
+    --text-primary: #e6edf3;
+    --text-secondary: #8b949e;
+    --accent-color: #2f81f7;
+    --code-color: #a5d6ff;
+}
+
+body {
+    background-color: var(--bg-body);
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    overflow-x: hidden;
+}
+
+/* Sidebar */
+.sidebar {
+    background-color: var(--bg-sidebar);
+    min-height: 100vh;
+    border-right: 1px solid var(--border-color);
+    position: fixed;
+    width: 250px;
+    z-index: 10;
+}
+
+.nav-item {
+    padding: 12px 20px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: 0.2s;
+}
+
+.nav-item:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.nav-item.active {
+    background: rgba(47, 129, 247, 0.15);
+    color: var(--accent-color);
+    border-right: 3px solid var(--accent-color);
+}
+
+.nav-item i {
+    width: 25px;
+}
+
+/* Content */
+.main-content {
+    margin-left: 250px;
+    padding: 30px;
+}
+
+.custom-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.card-header {
+    border-bottom: 1px solid var(--border-color);
+    padding: 15px 20px;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-body {
+    padding: 20px;
+}
+
+/* Inputs & Outputs */
+.form-control,
+.form-select {
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    transition: 0.2s;
+}
+
+.form-control:focus,
+.form-select:focus {
+    background-color: var(--bg-input);
+    border-color: var(--accent-color);
+    color: var(--text-primary);
+    box-shadow: none;
+}
+
+/* --- FIXED: Disabled State Styles --- */
+.form-control:disabled,
+.form-select:disabled,
+input:disabled {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    /* Slightly lighter bg */
+    color: #ffffff !important;
+    /* Bright White Text */
+    border-color: var(--border-color);
+    cursor: not-allowed;
+    opacity: 0.8;
+    /* Slight transparency */
+}
+
+.input-group-text {
+    background-color: #21262d;
+    border-color: var(--border-color);
+    color: var(--text-secondary);
+}
+
+.form-control::placeholder {
+    color: rgba(255, 255, 255, 0.7) !important;
+    opacity: 1;
+    /* Firefox override */
+}
+
+.fmt-select {
+    max-width: 80px;
+    font-size: 0.85em;
+    font-weight: bold;
+    color: var(--accent-color);
+}
+
+/* Helper Text & Hints */
+.form-text,
+.text-muted,
+#chHint {
+    color: #aeb6be !important;
+}
+
+/* Make hints brighter */
+
+pre,
+.gen-output {
+    background-color: #0d1117;
+    padding: 15px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    color: var(--code-color);
+    font-family: 'JetBrains Mono', monospace;
+    word-break: break-all;
+}
+
+.gen-output {
+    color: #7ee787;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+/* Structure Badges */
+.struct-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85em;
+    padding: 5px 8px;
+    margin-right: 4px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-bottom: 4px;
+}
+
+.sb-header {
+    background: rgba(210, 153, 34, 0.2);
+    color: #d29922;
+    border: 1px solid rgba(210, 153, 34, 0.4);
+}
+
+.sb-type {
+    background: rgba(47, 129, 247, 0.2);
+    color: #58a6ff;
+    border: 1px solid rgba(47, 129, 247, 0.4);
+}
+
+.sb-len {
+    background: rgba(110, 118, 129, 0.2);
+    color: #8b949e;
+    border: 1px solid rgba(110, 118, 129, 0.4);
+}
+
+.sb-cmd {
+    background: rgba(247, 129, 102, 0.2);
+    color: #ff7b72;
+    border: 1px solid rgba(247, 129, 102, 0.4);
+}
+
+.sb-data {
+    background: rgba(63, 185, 80, 0.2);
+    color: #3fb950;
+    border: 1px solid rgba(63, 185, 80, 0.4);
+}
+
+.sb-crc {
+    background: rgba(163, 113, 247, 0.2);
+    color: #d2a8ff;
+    border: 1px solid rgba(163, 113, 247, 0.4);
+}
+
+.sb-mask {
+    background: rgba(47, 129, 247, 0.2);
+    color: #58a6ff;
+    border: 1px solid rgba(47, 129, 247, 0.4);
+}
+
+.sb-seq {
+    background: rgba(32, 178, 170, 0.2);
+    color: #20b2aa;
+    border: 1px solid rgba(32, 178, 170, 0.4);
+}
+
+/* UI Elements */
+.grid-selector {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.feature-check {
+    display: none;
+}
+
+.feature-label {
+    text-align: left;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.9em;
+    cursor: pointer;
+    color: var(--text-secondary);
+    background: var(--bg-input);
+    transition: 0.2s;
+    display: flex;
+    align-items: center;
+}
+
+.feature-label:hover {
+    border-color: var(--accent-color);
+    color: var(--text-primary);
+}
+
+.feature-check:checked+.feature-label {
+    background: rgba(47, 129, 247, 0.15);
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+    box-shadow: 0 0 8px rgba(47, 129, 247, 0.2);
+}
+
+.weekday-selector {
+    display: flex;
+    gap: 5px;
+    justify-content: space-between;
+}
+
+.weekday-check {
+    display: none;
+}
+
+.weekday-label {
+    flex: 1;
+    text-align: center;
+    padding: 6px 0;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 0.8em;
+    cursor: pointer;
+    color: var(--text-secondary);
+    background: var(--bg-input);
+}
+
+.weekday-check:checked+.weekday-label {
+    background: var(--accent-color);
+    color: white;
+    border-color: var(--accent-color);
+}
+
+/* Utilities */
+.btn-primary {
+    background-color: var(--accent-color);
+    border: none;
+}
+
+.btn-primary:hover {
+    background-color: #266dd3;
+}
+
+.text-accent {
+    color: var(--accent-color);
+}
+
+.json-key {
+    color: #ff7b72;
+}
+
+.json-string {
+    color: #a5d6ff;
+}
+
+.json-number {
+    color: #79c0ff;
+}
+/* Toast Notification */
+#toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1050;
+}
+
+.custom-toast {
+    background-color: rgba(46, 204, 113, 0.9); /* Green */
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    margin-top: 10px;
+    animation: fadeInOut 2.5s forwards;
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+    font-weight: 500;
+    pointer-events: none;
+}
+
+@keyframes fadeInOut {
+    0% { opacity: 0; transform: translateY(10px); }
+    10% { opacity: 1; transform: translateY(0); }
+    80% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-10px); }
+}
+
+</style>
+</head>
+
+<body>
+
+    <div class="sidebar d-flex flex-column">
+        <div class="brand-section p-4 pb-3 border-bottom border-secondary mb-3"
+            style="border-color: #30363d !important;">
+            <div class="d-flex align-items-center mb-1">
+                <div class="me-3 d-flex align-items-center justify-content-center"
+                    style="width: 40px; height: 40px; background: rgba(13, 110, 253, 0.1); border-radius: 8px;">
+                    <i class="fa-solid fa-satellite-dish" style="color: #0d6efd; font-size: 1.2rem;"></i>
+                </div>
+                <div>
+                    <div class="text-uppercase fw-bold"
+                        style="font-size: 0.65rem; color: #6c757d; letter-spacing: 1px;">Advantech LoRaWAN</div>
+                    <div class="fw-bold text-white lh-1 mt-1" style="font-size: 1.1rem; letter-spacing: 0.5px;">Payload
+                        Formatter</div>
+                </div>
+            </div>
+            <div class="d-flex justify-content-end mt-2">
+                <span class="badge bg-dark border border-secondary text-secondary rounded-pill"
+                    style="font-size: 0.6em; padding: 0.3em 0.8em;">v0.8</span>
+            </div>
+        </div>
+        <div class="nav-item active" onclick="switchTab('uplink')" id="nav-uplink">
+            <i class="fa-solid fa-arrow-up"></i> Uplink Parser
+        </div>
+        <div class="nav-item" onclick="switchTab('downlink')" id="nav-downlink">
+            <i class="fa-solid fa-paper-plane"></i> Downlink Analysis
+        </div>
+        <div class="nav-item" onclick="switchTab('mac')" id="nav-mac">
+            <i class="fa-solid fa-network-wired"></i> MAC Analysis
+        </div>
+    </div>
+
+    <div class="main-content">
+
+        <!-- Uplink Parser -->
+        <div id="view-uplink">
+            <h3 class="mb-4">Uplink Payload Parser</h3>
+            <div class="row">
+                <div class="col-lg-5">
+                    <div class="custom-card mb-4">
+                        <div class="card-header">Input</div>
+                        <div class="card-body">
+                            <label class="text-secondary mb-2">Hex String</label>
+                            <textarea class="form-control" id="upHexInput" rows="6" placeholder="811C40..."></textarea>
+                            <div class="d-flex gap-2 mt-3">
+                                <button class="btn btn-primary flex-grow-1" onclick="runParser()">Parse</button>
+                                <button class="btn btn-outline-secondary" onclick="pasteText('upHexInput')"
+                                    title="Paste from Clipboard"><i class="fa-regular fa-paste"></i></button>
+                                <button class="btn btn-outline-secondary" onclick="clearParser()">Clear</button>
+                            </div>
+                            <button class="btn btn-outline-secondary w-100 mt-2" onclick="loadUpExample()">Load
+                                Example</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-7">
+                    <div class="custom-card h-100">
+                        <div class="card-header">
+                            Output Result
+                            <button class="btn btn-sm btn-outline-secondary"
+                                onclick="copyText('upOutput')">Copy</button>
+                        </div>
+                        <div class="card-body p-0">
+                            <pre id="upOutput"
+                                class="h-100 border-0 rounded-0 m-0 p-3 text-light font-monospace">Enter Hex string and click Parse...</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Downlink Generator -->
+        <div id="view-downlink" style="display: none;">
+            <h3 class="mb-4">Downlink Analysis</h3>
+            <div class="row">
+                <div class="col-lg-5">
+                    <div class="custom-card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span>Configuration</span>
+                            <!-- Mode Toggle -->
+                            <div class="btn-group btn-group-sm" role="group">
+                                <input type="radio" class="btn-check" name="dlMode" id="modeGen" autocomplete="off"
+                                    checked onchange="toggleDlMode()">
+                                <label class="btn btn-outline-primary" for="modeGen">Generator</label>
+
+                                <input type="radio" class="btn-check" name="dlMode" id="modeDec" autocomplete="off"
+                                    onchange="toggleDlMode()">
+                                <label class="btn btn-outline-primary" for="modeDec">Decoder</label>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <!-- Generator View -->
+                            <div id="dl-generator-view">
+                                <div class="mb-3">
+                                    <label class="text-secondary mb-2">1. Category</label>
+                                    <select class="form-select" id="genType">
+                                        <option value="0x5" selected>Sensor (Temp/Accel) [0x5]</option>
+                                        <option value="0x6">Device (System/RTC) [0x6]</option>
+                                        <option value="0x8">RS-485 Register [0x8]</option>
+                                        <option value="0x7">RS-485 Coil [0x7]</option>
+                                        <option value="0x0">DI (Digital Input) [0x0]</option>
+                                        <option value="0x1">DO (Digital Output) [0x1]</option>
+                                        <option value="0x3">AI (Analog Input) [0x3]</option>
+                                    </select>
+                                </div>
+
+                                <!-- Sub-Type Selectors -->
+                                <div class="mb-3" id="sensorRangeGroup">
+                                    <label class="text-secondary mb-2">Sensor Range</label>
+                                    <select class="form-select" id="sensorRange">
+                                        <option value="0">Temperature / Humidity (0x0-0x3)</option>
+                                        <option value="4">Accelerometer / Vibration (0x4-0x5)</option>
+                                    </select>
+                                </div>
+
+                                <!-- RS-485 Specifics -->
+                                <div class="row g-2 mb-3" id="portGroup" style="display:none;">
+                                    <div class="col-6">
+                                        <label class="text-secondary mb-2">COM Port</label>
+                                        <select class="form-select" id="genPort">
+                                            <option value="0">Port 1</option>
+                                            <option value="1">Port 2</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="text-secondary mb-2">Channel/Rule</label>
+                                        <input type="number" class="form-control" id="genCh485" value="0" min="0"
+                                            max="127">
+                                    </div>
+                                </div>
+
+                                <!-- Standard Channel -->
+                                <div class="mb-3" id="channelGroup">
+                                    <label class="text-secondary mb-2">Channel</label>
+                                    <input type="number" class="form-control" id="genCh" value="0" min="0" max="15">
+                                    <div class="form-text small" id="chHint"></div>
+                                </div>
+
+                                <!-- Axis Selection (Accel) -->
+                                <div class="mb-3" id="axisGroup" style="display:none;">
+                                    <label class="text-secondary mb-2">Target Axes (Generates Mask)</label>
+                                    <div class="d-flex gap-3">
+                                        <div class="form-check"><input class="form-check-input" type="checkbox"
+                                                id="axisX" checked><label class="form-check-label text-light">X</label>
+                                        </div>
+                                        <div class="form-check"><input class="form-check-input" type="checkbox"
+                                                id="axisY" checked><label class="form-check-label text-light">Y</label>
+                                        </div>
+                                        <div class="form-check"><input class="form-check-input" type="checkbox"
+                                                id="axisZ" checked><label class="form-check-label text-light">Z</label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="text-secondary mb-2">2. Command</label>
+                                    <select class="form-select" id="genCmd"></select>
+                                </div>
+
+                                <div id="genParamArea" class="mb-4"></div>
+
+                                <div class="border-top border-secondary pt-3 mt-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <label class="text-secondary m-0">Sequence No.</label>
+                                        <input type="number" class="form-control form-control-sm w-25" id="genSeq"
+                                            value="0">
+                                    </div>
+                                </div>
+
+                                <button class="btn btn-primary w-100 mt-2" onclick="runGenerator()">Generate
+                                    Hex</button>
+                            </div>
+
+                            <!-- Decoder View -->
+                            <div id="dl-decoder-view" style="display: none;">
+                                <div class="mb-3">
+                                    <label class="text-secondary mb-2">Downlink Hex String</label>
+                                    <textarea class="form-control font-monospace" id="decHexInput" rows="5"
+                                        placeholder="Paste Hex here (e.g. 800005...)"></textarea>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-success flex-grow-1" onclick="runDecoder()">Decode</button>
+                                    <button class="btn btn-outline-secondary" onclick="pasteText('decHexInput')"
+                                        title="Paste from Clipboard"><i class="fa-regular fa-paste"></i></button>
+                                    <button class="btn btn-outline-secondary" onclick="clearDecoder()">Clear</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-7">
+                    <div class="custom-card h-100">
+                        <div class="card-header">
+                            Output Result
+                            <!-- Copy moved to below -->
+                        </div>
+                        <div class="card-body p-0">
+                            <!-- Generator Output -->
+                            <div id="dl-gen-output-area" class="p-4">
+                                <label class="text-secondary mb-2">Protocol Structure</label>
+                                <div id="genStructure" class="mb-3">
+                                    <span class="text-muted small">Select parameters and click Generate...</span>
+                                </div>
+
+                                <label class="text-secondary mb-2">Generated Hex String</label>
+                                <div class="d-flex gap-2 mb-3">
+                                    <div class="gen-output flex-grow-1 mb-0" id="genOutput">Select commands and click
+                                        Generate</div>
+                                    <button class="btn btn-outline-secondary" onclick="copyText('genOutput')"
+                                        title="Copy to Clipboard">
+                                        <i class="fa-regular fa-copy"></i>
+                                    </button>
+                                </div>
+
+                                <div class="border-top border-secondary pt-3 text-start">
+                                    <label class="text-secondary small mb-2">Breakdown:</label>
+                                    <div class="text-secondary small font-monospace" id="genBreakdown"></div>
+                                </div>
+                            </div>
+
+                            <!-- Decoder Output -->
+                            <div id="dl-dec-output-area" style="display: none;" class="h-100">
+                                <div id="decResult" class="text-light h-100 p-3">
+                                    <pre
+                                        class="h-100 border-0 rounded-0 m-0 p-3 text-light font-monospace">Enter Hex string and click Decode...</pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAC Analysis View -->
+        <div id="view-mac" style="display: none;">
+            <h3 class="mb-4">MAC Command Analysis</h3>
+            <div class="row">
+                <div class="col-lg-5">
+                    <div class="custom-card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span>Configuration</span>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <input type="radio" class="btn-check" name="macMode" id="macModeGen" autocomplete="off"
+                                    checked onchange="toggleMacMode()">
+                                <label class="btn btn-outline-primary" for="macModeGen">Generator</label>
+                                <input type="radio" class="btn-check" name="macMode" id="macModeDec" autocomplete="off"
+                                    onchange="toggleMacMode()">
+                                <label class="btn btn-outline-primary" for="macModeDec">Decoder</label>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <!-- Generator Inputs -->
+                            <div id="mac-gen-view">
+                                <div class="mb-3">
+                                    <label class="text-secondary mb-2">1. Direction</label>
+                                    <select class="form-select" id="macGenDir" onchange="updateMacCommands()">
+                                        <option value="down">Downlink (Network Server -> Device)</option>
+                                        <option value="up">Uplink (Device -> Network Server)</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="text-secondary mb-2">2. Command</label>
+                                    <select class="form-select" id="macGenCmd" onchange="updateMacParams()"></select>
+                                </div>
+                                <div id="macGenParamArea" class="mb-4"></div>
+                                <button class="btn btn-primary w-100 mt-2" onclick="runMacGenerator()">Generate
+                                    Hex</button>
+                            </div>
+
+                            <!-- Decoder Inputs -->
+                            <div id="mac-dec-view" style="display: none;">
+                                <div class="mb-3">
+                                    <label class="text-secondary mb-2">Direction Context</label>
+                                    <select class="form-select" id="macDecDir">
+                                        <option value="down">Downlink (Parse Requests/Answers from Server)</option>
+                                        <option value="up">Uplink (Parse Requests/Answers from Device)</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="text-secondary mb-2">MAC Payload Hex</label>
+                                    <textarea class="form-control font-monospace" id="macDecInput" rows="5"
+                                        placeholder="Paste MAC Hex here (e.g. 0360...)"></textarea>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-success flex-grow-1"
+                                        onclick="runMacDecoder()">Decode</button>
+                                    <button class="btn btn-outline-secondary" onclick="pasteText('macDecInput')"
+                                        title="Paste from Clipboard"><i class="fa-regular fa-paste"></i></button>
+                                    <button class="btn btn-outline-secondary" onclick="clearMacDecoder()">Clear</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-7">
+                    <div class="custom-card h-100">
+                        <div class="card-header">
+                            Output Result
+                        </div>
+                        <div class="card-body p-0">
+                            <!-- Generator Output -->
+                            <div id="mac-gen-output-area" class="p-4">
+                                <label class="text-secondary mb-2">Generated Hex String</label>
+                                <div class="d-flex gap-2 mb-3">
+                                    <div class="gen-output flex-grow-1 mb-0" id="macGenOutput">Select commands and click
+                                        Generate</div>
+                                    <button class="btn btn-outline-secondary" onclick="copyText('macGenOutput')"
+                                        title="Copy to Clipboard">
+                                        <i class="fa-regular fa-copy"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <!-- Decoder Output -->
+                            <div id="mac-dec-output-area" style="display: none;" class="h-100">
+                                <div id="macDecResult" class="text-light h-100 p-3">
+                                    <pre
+                                        class="h-100 border-0 rounded-0 m-0 p-3 text-light font-monospace">Enter Hex string and click Decode...</pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- Scripts -->
+    <script>
+///////////////////////////////////////////////////////////////////
+// Advantech
+//
+// Frame Data Parser for WISE Lora modules (execute in TTNv3)
+//
+// version: 1.0.1 <2023/02/8>
+//
+///////////////////////////////////////////////////////////////////
+function decodeUplink(input) {
+    ///////////////////////////////////////
+	// User defined variables
+	///////////////////////////////////////
+
+	//Min Frame length
+	var MIN_FRAME_LENGTH = 4;
+
+	//Header
+	var MASK_HEADER_FIRST_SEGMENT = 0x80;
+	var MASK_HEADER_ADDRESS_MODE = 0x0C;
+	var MASK_HEADER_ADDRESS_NONE = 0x00;
+	var MASK_HEADER_ADDRESS_2_OCTECT = 0x04;
+	var MASK_HEADER_ADDRESS_8_OCTECT = 0x08;
+	var MASK_HEADER_FRAME_VERSION = 0x03;
+
+	//Payload Data
+	//AI
+	var PAYLOAD_DI_DATA = 0x00;
+	//DO
+	var PAYLOAD_DO_DATA = 0x10;
+	//DI
+	var PAYLOAD_AI_DATA = 0x30;
+	//Sensor
+	var PAYLOAD_SENSOR_DATA = 0x50;
+	//Device Status
+	var PAYLOAD_DEVICE_DATA = 0x60;
+	//Coil data
+	var PAYLOAD_COIL_DATA = 0x70;
+	//Register data
+	var PAYLOAD_REGISTER_DATA = 0x80;
+
+	//DI
+	var MASK_PAYLOAD_DI_STATUS = 0x01;
+	var MASK_PAYLOAD_DI_VALUE = 0x02;
+	var MASK_PAYLOAD_DI_EVENT = 0x04;
+	var DI_MODE_FREQUENCY = 4;
+
+	//DO
+	var MASK_PAYLOAD_DO_STATUS = 0x01;
+	var MASK_PAYLOAD_DO_ABSOLUTE_PULSE_OUTPUT = 0x02;
+	var MASK_PAYLOAD_DO_INCREMENTAL_PULSE_OUTPUT = 0x04;
+
+	//AI
+	var MASK_PAYLOAD_AI_STATUS = 0x01;
+	var MASK_PAYLOAD_AI_RAW_VALUE = 0x02;
+	var MASK_PAYLOAD_AI_EVENT = 0x04;
+	var MASK_PAYLOAD_AI_MAX_VALUE = 0x08;
+	var MASK_PAYLOAD_AI_MIN_VALUE = 0x10;
+
+	var MASK_PAYLOAD_AI_MASK2_RANGE = 0x01;
+
+	//Sensor Range
+	var MASK_PAYLOAD_SENSOR_TEMP_C_TYPE = 0x00;
+	var MASK_PAYLOAD_SENSOR_TEMP_F_TYPE = 0x01;
+	var MASK_PAYLOAD_SENSOR_TEMP_K_TYPE = 0x02;
+	var MASK_PAYLOAD_SENSOR_HUMIDITY_TYPE = 0x03;
+	var MASK_PAYLOAD_SENSOR_ACCELERATOR_TYPE_G = 0x04;
+	var MASK_PAYLOAD_SENSOR_ACCELERATOR_TYPE_MS2 = 0x05;
+
+	var MASK_PAYLOAD_SENSOR_MASK_SENSNSOR_STATUS = 0x01;
+	var MASK_PAYLOAD_SENSOR_MASK_SENSNSOR_EVENT = 0x02;
+	var MASK_PAYLOAD_SENSOR_MASK_SENSNSOR_VALUE = 0x04;
+	var MASK_PAYLOAD_SENSOR_MASK_SENSNSOR_MAX_VALUE = 0x08;
+	var MASK_PAYLOAD_SENSOR_MASK_SENSNSOR_MIN_VALUE = 0x10;
+
+	var MASK_PAYLOAD_SENSOR_AXIS_X_MASK = 0x01;
+	var MASK_PAYLOAD_SENSOR_AXIS_Y_MASK = 0x02;
+	var MASK_PAYLOAD_SENSOR_AXIS_Z_MASK = 0x04;
+
+	var MASK_PAYLOAD_SENSOR_MASK2_LOGINDEX = 0x01;
+	var MASK_PAYLOAD_SENSOR_MASK2_TIME = 0x02;
+
+	//Sensor Extend Mask
+	var MASK_PAYLOAD_SENSOR_EXTMASK_VELOCITY = 0x01;
+	var MASK_PAYLOAD_SENSOR_EXTMASK_PEAK = 0x02;
+	var MASK_PAYLOAD_SENSOR_EXTMASK_RMS = 0x04;
+	var MASK_PAYLOAD_SENSOR_EXTMASK_KURTOSIS = 0x08;
+	var MASK_PAYLOAD_SENSOR_EXTMASK_CRESTFACTOR = 0x10;
+	var MASK_PAYLOAD_SENSOR_EXTMASK_SKEWNESS = 0x20;
+	var MASK_PAYLOAD_SENSOR_EXTMASK_STDDEVIATION = 0x40;
+	var MASK_PAYLOAD_SENSOR_EXTMASK_DISPLACEMENT = 0x80;
+
+	//Massive data
+	var MASK_PAYLOAD_SENSOR_EXTMASK_B = 0x01;
+	var MASK_PAYLOAD_SENSOR_EXTMASK_MASSIVE_DATA_INFO = 0x01;
+	var MASK_PAYLOAD_SENSOR_EXTMASK_MASSIVE_DATA_SEC = 0x02;
+	var MASK_PAYLOAD_SENSOR_EXTMASK_MASSIVE_DATA_LOG = 0x04;
+
+	//Massive Data Type
+	var MASK_PAYLOAD_SENSOR_MASSIVE_DATA_TYPE_MASSIVE_TYPE = 0x03;
+	var MASK_PAYLOAD_SENSOR_MASSIVE_DATA_TYPE_SAMPLE_PER_AXIS = 0x0C;
+	var MASK_PAYLOAD_SENSOR_MASSIVE_DATA_TYPE_BYTES_PER_SAMPLE = 0x10;
+	var MASK_PAYLOAD_SENSOR_MASSIVE_DATA_TYPE_MASSIVE_TYPE_FFT = 0x01;
+
+	//Device Status
+	var MASK_DEVICE_EVENT = 0x01;
+	var MASK_DEVICE_POWER_SOURCE = 0x02;
+	var MASK_DEVICE_BATTERY_LEVEL = 0x04;
+	var MASK_DEVICE_BATTERY_VOLTAGE = 0x08;
+	var MASK_DEVICE_TIMESTAMP = 0x10;
+	var MASK_DEVICE_POSITION = 0x20;
+
+	var MASK_DEVICE_POSITION_LATITUDE = 0x02;
+	var MASK_DEVICE_POSITION_LONGITUDE = 0x01;
+
+	//Coil Data
+	var MASK_PAYLOAD_COIL_STATUS = 0x01;
+	var MASK_PAYLOAD_COIL_VALUE = 0x02;
+	var MASK_PAYLOAD_COIL_MULTI_CH = 0x04;
+
+	//Register Data
+	var MASK_PAYLOAD_REGISTER_STATUS = 0x01;
+	var MASK_PAYLOAD_REGISTER_VALUE = 0x02;
+	var MASK_PAYLOAD_REGISTER_MULTI_CH = 0x04;
+
+    ////////////////////////
+    // Variables
+    ////////////////////////
+    var version;
+    var message = {}; //output of this program
+    var i, arrLength;
+	var hexArr; //translated hex arry from input string
+    var hexPayloadArr = [];
+	var arrayIndex = 0; //index of current processing position in hexArr
+    var au8CRC8_Pol07_Table = [ // 8bit-CRC: 0x07 = x8 + x2 + x + 1
+		0x00,0x07,0x0E,0x09,0x1C,0x1B,0x12,0x15,
+		0x38,0x3F,0x36,0x31,0x24,0x23,0x2A,0x2D,
+		0x70,0x77,0x7E,0x79,0x6C,0x6B,0x62,0x65,
+		0x48,0x4F,0x46,0x41,0x54,0x53,0x5A,0x5D,
+		0xE0,0xE7,0xEE,0xE9,0xFC,0xFB,0xF2,0xF5,
+		0xD8,0xDF,0xD6,0xD1,0xC4,0xC3,0xCA,0xCD,
+		0x90,0x97,0x9E,0x99,0x8C,0x8B,0x82,0x85,
+		0xA8,0xAF,0xA6,0xA1,0xB4,0xB3,0xBA,0xBD,
+		0xC7,0xC0,0xC9,0xCE,0xDB,0xDC,0xD5,0xD2,
+		0xFF,0xF8,0xF1,0xF6,0xE3,0xE4,0xED,0xEA,
+		0xB7,0xB0,0xB9,0xBE,0xAB,0xAC,0xA5,0xA2,
+		0x8F,0x88,0x81,0x86,0x93,0x94,0x9D,0x9A,
+		0x27,0x20,0x29,0x2E,0x3B,0x3C,0x35,0x32,
+		0x1F,0x18,0x11,0x16,0x03,0x04,0x0D,0x0A,
+		0x57,0x50,0x59,0x5E,0x4B,0x4C,0x45,0x42,
+		0x6F,0x68,0x61,0x66,0x73,0x74,0x7D,0x7A,
+		0x89,0x8E,0x87,0x80,0x95,0x92,0x9B,0x9C,
+		0xB1,0xB6,0xBF,0xB8,0xAD,0xAA,0xA3,0xA4,
+		0xF9,0xFE,0xF7,0xF0,0xE5,0xE2,0xEB,0xEC,
+		0xC1,0xC6,0xCF,0xC8,0xDD,0xDA,0xD3,0xD4,
+		0x69,0x6E,0x67,0x60,0x75,0x72,0x7B,0x7C,
+		0x51,0x56,0x5F,0x58,0x4D,0x4A,0x43,0x44,
+		0x19,0x1E,0x17,0x10,0x05,0x02,0x0B,0x0C,
+		0x21,0x26,0x2F,0x28,0x3D,0x3A,0x33,0x34,
+		0x4E,0x49,0x40,0x47,0x52,0x55,0x5C,0x5B,
+		0x76,0x71,0x78,0x7F,0x6A,0x6D,0x64,0x63,
+		0x3E,0x39,0x30,0x37,0x22,0x25,0x2C,0x2B,
+		0x06,0x01,0x08,0x0F,0x1A,0x1D,0x14,0x13,
+		0xAE,0xA9,0xA0,0xA7,0xB2,0xB5,0xBC,0xBB,
+		0x96,0x91,0x98,0x9F,0x8A,0x8D,0x84,0x83,
+		0xDE,0xD9,0xD0,0xD7,0xC2,0xC5,0xCC,0xCB,
+		0xE6,0xE1,0xE8,0xEF,0xFA,0xFD,0xF4,0xF3
+	];
+
+	////////////////////////////////////////////
+	// Functions
+	////////////////////////////////////////////
+    function addZero(i) {
+		i = i + "";
+		if (i.length < 2) {
+			i = "0" + i;
+		}
+		return i;
+	}
+
+	function translateInt32(a, b, c ,d) {
+		return (d << 24) + (c << 16) + (b << 8) + a;
+	}
+
+	function translateInt24(a, b, c) {
+		return (c << 16) + (b << 8) + a;
+	}
+
+	function translateInt16(a, b) {
+		return a + (b << 8);
+	}
+
+	function convertMaskToArray(number, channelCount) {
+		var biArray = [];
+		var temp;
+		for (var i = 0; i < channelCount; ++i) {
+			temp = number;
+			temp = temp >> i;
+			biArray.push(temp & 1);
+		}
+		return biArray;
+	}
+
+	function convertToSignedInt16(number) {
+		if ((number & 0x8000) > 0) {
+			number = number - 0x10000;
+		}
+		return number;
+	}
+
+	function convertToSignedInt32(number) {
+		if ((number & 0x80000000) > 0) {
+			number = number - 0x100000000;
+		}
+		return number;
+	}
+
+	function parseAxisData(index, bIsSensorEventExist, extMask, jsonObj, range){
+		if(bIsSensorEventExist){
+			jsonObj.SenEvent = translateInt16(hexArr[index++], hexArr[index++]);
+		}
+		if(extMask & MASK_PAYLOAD_SENSOR_EXTMASK_VELOCITY){
+			jsonObj.OAVelocity = translateInt16(hexArr[index++], hexArr[index++]) / 100;
+		}
+		if(extMask & MASK_PAYLOAD_SENSOR_EXTMASK_PEAK){
+			if (range === MASK_PAYLOAD_SENSOR_ACCELERATOR_TYPE_G) {
+				jsonObj.Peakmg = translateInt16(hexArr[index++], hexArr[index++]) / 1000;
+			} else {
+				jsonObj.Peakmg = translateInt16(hexArr[index++], hexArr[index++]) / 100;
+			}
+		}
+		if(extMask & MASK_PAYLOAD_SENSOR_EXTMASK_RMS){
+			if (range === MASK_PAYLOAD_SENSOR_ACCELERATOR_TYPE_G) {
+				jsonObj.RMSmg = translateInt16(hexArr[index++], hexArr[index++]) / 1000;
+			} else {
+				jsonObj.RMSmg = translateInt16(hexArr[index++], hexArr[index++]) / 100;
+			}
+		}
+		if(extMask & MASK_PAYLOAD_SENSOR_EXTMASK_KURTOSIS){
+			jsonObj.Kurtosis = convertToSignedInt16(translateInt16(hexArr[index++], hexArr[index++])) / 100;
+		}
+		if(extMask & MASK_PAYLOAD_SENSOR_EXTMASK_CRESTFACTOR){
+			jsonObj.CrestFactor = convertToSignedInt16(translateInt16(hexArr[index++], hexArr[index++])) / 100;
+		}
+		if(extMask & MASK_PAYLOAD_SENSOR_EXTMASK_SKEWNESS){
+			jsonObj.Skewness = convertToSignedInt16(translateInt16(hexArr[index++], hexArr[index++])) / 100;
+		}
+		if(extMask & MASK_PAYLOAD_SENSOR_EXTMASK_STDDEVIATION){
+			jsonObj.Deviation = convertToSignedInt16(translateInt16(hexArr[index++], hexArr[index++])) / 100;
+		}
+		if(extMask & MASK_PAYLOAD_SENSOR_EXTMASK_DISPLACEMENT){
+			jsonObj['Peak-to-Peak Displacement'] = translateInt16(hexArr[index++], hexArr[index++]);
+		}
+
+		return index;
+	}
+
+	function DIParse(index){
+		var length;
+		var mode = hexArr[index++] & 0x0F;
+
+		if (version > 0) {
+			length = hexArr[index++];
+		}
+
+		var channel = hexArr[index++];
+		if (version > 0) length -= 1; // channel index and mask
+		var channelIndex = (channel & 0xE0) >> 5;
+		var channelMask = channel & 0x07;
+
+		message['DI'+channelIndex] = {};
+
+		if (channelMask & MASK_PAYLOAD_DI_STATUS) {
+			var arrBinary = convertMaskToArray(hexArr[index++], 8);
+			if (version > 0) length -= 1;
+
+			message['DI'+channelIndex].status = {};
+			message['DI'+channelIndex].status['Signal Logic'] = arrBinary[0];
+			message['DI'+channelIndex].status['Start Counter'] = arrBinary[1];
+			message['DI'+channelIndex].status['Get/Clean Counter Overflow'] = arrBinary[2];
+			// message['DI'+channelIndex].status['Clean Counter Status'] = arrBinary[3];
+			message['DI'+channelIndex].status['Get/Clean L2H Latch'] = arrBinary[4];
+			message['DI'+channelIndex].status['Get/Clean H2L Latch'] = arrBinary[5];
+		}
+
+		message['DI'+channelIndex].mode = mode;
+
+		if (channelMask & MASK_PAYLOAD_DI_VALUE) {
+			if (mode == DI_MODE_FREQUENCY) { // frequency mode
+				message['DI'+channelIndex].Frequency_Value = translateInt32(hexArr[index++], hexArr[index++], hexArr[index++], hexArr[index++]);
+			} else {
+				message['DI'+channelIndex].Counter_Value = translateInt32(hexArr[index++], hexArr[index++], hexArr[index++], hexArr[index++]);
+			}
+			if (version > 0) length -= 4;
+		}
+
+		if (channelMask & MASK_PAYLOAD_DI_EVENT) {
+			message['DI'+channelIndex].Event = hexArr[index++];
+			 if (version > 0) length -= 1;
+		}
+
+		if (version > 0) {
+			if (length > 0) {
+				index += length;
+			}
+		}
+
+		return index;
+	}
+
+	function DOParse(index){
+		var length;
+		var mode = hexArr[index++] & 0x0F;
+
+		if (version > 0) {
+			length = hexArr[index++];
+		}
+
+		var channel = hexArr[index++];
+		if (version > 0) length -= 1; // channel index and mask
+		var channelIndex = (channel & 0xE0) >> 5;
+		var channelMask = channel & 0x07;
+
+		message['DO'+channelIndex] = {};
+
+		var modeText = '';
+		switch (mode) {
+			case 0:
+				modeText = 'DO';
+				break;
+			case 1:
+				modeText = 'Pulse output';
+				break;
+			case 2:
+				modeText = 'Low to High delay';
+				break;
+			case 3:
+				modeText = 'High to Low delay';
+				break;
+			case 4:
+				modeText = 'AI alarm drive';
+				break;
+		}
+		message['DO'+channelIndex].Mode = modeText;
+
+		if (channelMask & MASK_PAYLOAD_DO_STATUS) {
+			var status = convertMaskToArray(hexArr[index++], 8);
+			if (version > 0) length -= 1;
+			message['DO'+channelIndex].status = {};
+			message['DO'+channelIndex].status['Signal Logic'] = status[0];
+			message['DO'+channelIndex].status['Pulse Output Continue'] = status[1];
+		}
+		if (mode == 1) {
+			message['DO'+channelIndex].PulsAbs = 0;
+			message['DO'+channelIndex].PulsInc = 0;
+		}
+		if (channelMask & MASK_PAYLOAD_DO_ABSOLUTE_PULSE_OUTPUT) {
+			message['DO'+channelIndex].PulsAbs = translateInt32(hexArr[index++], hexArr[index++], hexArr[index++], hexArr[index++]);
+			if (version > 0) length -= 4;
+		}
+		if (channelMask & MASK_PAYLOAD_DO_INCREMENTAL_PULSE_OUTPUT) {
+			message['DO'+channelIndex].PulsInc = translateInt32(hexArr[index++], hexArr[index++], hexArr[index++], hexArr[index++]);
+			if (version > 0) length -= 4;
+		}
+
+		if (version > 0) {
+			if (length > 0) {
+				index += length;
+			}
+		}
+
+		return index;
+	}
+
+	function AIParse(index){
+		var length;
+		var range = hexArr[index++] & 0x0F;
+
+		if (version > 0) {
+			length = hexArr[index++];
+		}
+
+		var channel = hexArr[index++];
+		if (version > 0) length -= 1; // channel index and mask
+		var channelIndex = (channel & 0xE0) >> 5;
+		var channelMask = channel & 0x1F;
+
+		message['AI'+channelIndex] = {};
+		message['AI'+channelIndex].Range = range;
+
+		if (channelMask & MASK_PAYLOAD_AI_STATUS) {
+			var status = convertMaskToArray(hexArr[index++], 8);
+			if (version > 0) length -= 1;
+			message['AI'+channelIndex].status = {};
+			message['AI'+channelIndex].status['Low Alarm'] = status[0];
+			message['AI'+channelIndex].status['High Alarm'] = status[1];
+		}
+		if (channelMask & MASK_PAYLOAD_AI_RAW_VALUE) {
+			message['AI'+channelIndex]['Raw Data'] = translateInt16(hexArr[index++], hexArr[index++]);
+			if (version > 0) length -= 2;
+		}
+		if (channelMask & MASK_PAYLOAD_AI_EVENT) {
+			message['AI'+channelIndex].Event = translateInt16(hexArr[index++], hexArr[index++]);
+			if (version > 0) length -= 2;
+		}
+		if (channelMask & MASK_PAYLOAD_AI_MAX_VALUE) {
+			message['AI'+channelIndex].MaxVal = translateInt16(hexArr[index++], hexArr[index++]);
+			if (version > 0) length -= 2;
+		}
+		if (channelMask & MASK_PAYLOAD_AI_MIN_VALUE) {
+			message['AI'+channelIndex].MinVal = translateInt16(hexArr[index++], hexArr[index++]);
+			if (version > 0) length -= 2;
+		}
+
+		if (version > 0 && length > 0) {
+			var mask2 = hexArr[index++];
+			length -= 1;
+			if (mask2 & MASK_PAYLOAD_AI_MASK2_RANGE) {
+				message['AI'+channelIndex].Range = hexArr[index++];
+				length -= 1;
+			}
+			if (length > 0) {
+				index += length;
+			}
+		}
+
+		return index;
+	}
+
+	function sensorParse(index){
+		var length;
+		var range = hexArr[index] & 0x0F;
+		//Temperature/Humidity
+		if(range === MASK_PAYLOAD_SENSOR_TEMP_C_TYPE || range === MASK_PAYLOAD_SENSOR_TEMP_F_TYPE ||
+				range === MASK_PAYLOAD_SENSOR_TEMP_K_TYPE || range === MASK_PAYLOAD_SENSOR_HUMIDITY_TYPE){
+
+			if (version > 0) {
+				index++;
+				length = hexArr[index];
+			}
+
+			message.TempHumi = {};
+			message.TempHumi.Range = range;
+			index++;
+			//message.TempHumi.ChIdx = hexArr[index] & 0xE0;
+			mask = hexArr[index] & 0x1F;
+			if (version > 0) length -= 1; // channel index and mask
+			index++;
+
+			//if sensor status exist
+			if(mask & MASK_PAYLOAD_SENSOR_MASK_SENSNSOR_STATUS){
+				message.TempHumi.Status = hexArr[index++];
+				if (version > 0) length -= 1;
+			}
+			//if sensor event exist
+			if(mask & MASK_PAYLOAD_SENSOR_MASK_SENSNSOR_EVENT){
+				message.TempHumi.Event = translateInt16(hexArr[index++], hexArr[index++]);
+				if (version > 0) length -= 2;
+			}
+			//if sensor value exist
+			if(mask & MASK_PAYLOAD_SENSOR_MASK_SENSNSOR_VALUE){
+				if (range === MASK_PAYLOAD_SENSOR_HUMIDITY_TYPE) {
+					message.TempHumi.SenVal = translateInt32(hexArr[index++], hexArr[index++], hexArr[index++], hexArr[index++]) / 1000;
+				} else {
+					message.TempHumi.SenVal = convertToSignedInt32(translateInt32(hexArr[index++], hexArr[index++], hexArr[index++], hexArr[index++])) / 1000;
+				}
+				if (version > 0) length -= 4;
+			}
+			//if sensor MAX value exist
+			if(mask & MASK_PAYLOAD_SENSOR_MASK_SENSNSOR_MAX_VALUE){
+				message.TempHumi.SenMaxVal = translateInt32(hexArr[index++], hexArr[index++], hexArr[index++], hexArr[index++]) / 100;
+				if (version > 0) length -= 4;
+			}
+			//if sensor MIN value exist
+			if(mask & MASK_PAYLOAD_SENSOR_MASK_SENSNSOR_MIN_VALUE){
+				message.TempHumi.SenMinVal = translateInt32(hexArr[index++], hexArr[index++], hexArr[index++], hexArr[index++]) / 100;
+				if (version > 0) length -= 4;
+			}
+
+			if (version > 0) {
+				// reserved
+				// var mask2 = hexArr[index++];
+				if (length > 0) {
+					index += length;
+				}
+			}
+		}
+		if(range === MASK_PAYLOAD_SENSOR_ACCELERATOR_TYPE_G || range === MASK_PAYLOAD_SENSOR_ACCELERATOR_TYPE_MS2){
+			bIsSensorEventExist = false;
+
+			if (version > 0) {
+				index++;
+				var length = hexArr[index];
+			}
+
+			index++;
+			axisMask = (hexArr[index] & 0xE0) >> 5;
+
+			var arrAxisMask = convertMaskToArray(axisMask, 8);
+			var intAxisMaskEnable = 0;
+			arrAxisMask.forEach(function (item) {
+				if (item == 1) {
+					intAxisMaskEnable++;
+				}
+			});
+
+			mask = hexArr[index] & 0x1F;
+			index++;
+			extMask = hexArr[index]; //extend mask
+
+			var arrExtMask = convertMaskToArray(extMask, 8);
+			var intExtMaskEnable = 0;
+			arrExtMask.forEach(function (item) {
+				if (item == 1) {
+					intExtMaskEnable++;
+				}
+			});
+
+			if (!(mask & MASK_PAYLOAD_SENSOR_EXTMASK_B)) {
+				message.Accelerometer = {};
+
+				//if sensor event exist
+				if(mask & MASK_PAYLOAD_SENSOR_MASK_SENSNSOR_EVENT){
+					bIsSensorEventExist = true;
+				}
+				index++;
+
+				if(axisMask & MASK_PAYLOAD_SENSOR_AXIS_X_MASK){
+					message.Accelerometer["X-Axis"] = {};
+					index = parseAxisData(index, bIsSensorEventExist, extMask, message.Accelerometer["X-Axis"], range);
+				}
+				if(axisMask & MASK_PAYLOAD_SENSOR_AXIS_Y_MASK){
+					message.Accelerometer["Y-Axis"] = {};
+					index = parseAxisData(index, bIsSensorEventExist, extMask, message.Accelerometer["Y-Axis"], range);
+				}
+				if(axisMask & MASK_PAYLOAD_SENSOR_AXIS_Z_MASK){
+					message.Accelerometer["Z-Axis"] = {};
+					index = parseAxisData(index, bIsSensorEventExist, extMask, message.Accelerometer["Z-Axis"], range);
+				}
+
+				length = length - 2 - (intAxisMaskEnable * (intExtMaskEnable * 2 + (bIsSensorEventExist ? 2 : 0))); // Length - (Axis Mask + Mask) - Extend Mask A - Axis Data
+				message.Accelerometer.LogIndex = 0;
+				if (version > 0 && length > 0) {
+					var mask2 = hexArr[index++];
+					length -= 1;
+					if (mask2 & MASK_PAYLOAD_SENSOR_MASK2_LOGINDEX) {
+						message.Accelerometer.LogIndex = translateInt32(hexArr[index++], hexArr[index++], hexArr[index++], hexArr[index++]);
+						length -= 4;
+					}
+					if (mask2 & MASK_PAYLOAD_SENSOR_MASK2_TIME) {
+						message.Accelerometer.Time = translateInt32(hexArr[index++], hexArr[index++], hexArr[index++], hexArr[index++]);
+						length -= 4;
+					}
+					if (length > 0) {
+						index += length;
+					}
+				}
+			} else { // extend mask B
+				var FFTDataStorage = {};
+				index++;
+				if (extMask & MASK_PAYLOAD_SENSOR_EXTMASK_MASSIVE_DATA_INFO) {
+					var dataType = hexArr[index++];
+					var sampleRate = translateInt24(hexArr[index++], hexArr[index++], hexArr[index++]);
+					var points = translateInt16(hexArr[index++], hexArr[index++]);
+					var logIndex = translateInt32(hexArr[index++], hexArr[index++], hexArr[index++], hexArr[index++]);
+					var timestamp = translateInt32(hexArr[index++], hexArr[index++], hexArr[index++], hexArr[index++]);
+					var totalLength = translateInt32(hexArr[index++], hexArr[index++], hexArr[index++], hexArr[index++]);
+					var massType = dataType & MASK_PAYLOAD_SENSOR_MASSIVE_DATA_TYPE_MASSIVE_TYPE;
+					var bytesPerSample = (((dataType & MASK_PAYLOAD_SENSOR_MASSIVE_DATA_TYPE_BYTES_PER_SAMPLE) >> 4) > 0) ? 4 : 2;
+					var samplesPerAxis = (massType == MASK_PAYLOAD_SENSOR_MASSIVE_DATA_TYPE_MASSIVE_TYPE_FFT && ((dataType & MASK_PAYLOAD_SENSOR_MASSIVE_DATA_TYPE_SAMPLE_PER_AXIS) >> 2) > 0) ? (points/2.56/2) : (points/2.56);
+					var bytesPerAxis = bytesPerSample * samplesPerAxis;
+
+					// length = length - Massive Info
+					length = length - 18;
+
+					FFTDataStorage.timestamp = timestamp;
+					FFTDataStorage.lastSeq = hexArr[1];
+					FFTDataStorage.lastPayload = hexArr;
+					FFTDataStorage.logIndex = logIndex;
+					FFTDataStorage.sampleRate = sampleRate;
+					FFTDataStorage.points = points;
+					FFTDataStorage.bytesPerSample = bytesPerSample;
+					FFTDataStorage.samplesPerAxis = samplesPerAxis;
+					FFTDataStorage.bytesPerAxis = bytesPerAxis;
+					FFTDataStorage.totalLength = totalLength;
+				}
+				if (extMask & MASK_PAYLOAD_SENSOR_EXTMASK_MASSIVE_DATA_SEC) {
+					if (typeof FFTDataStorage.timestamp == 'undefined') {
+						throw "FFT Data lost first packet.";
+					}
+
+					var axisType = ['X', 'Y', 'Z'];
+					if (!(axisMask & MASK_PAYLOAD_SENSOR_AXIS_X_MASK)) {
+						var axisIndex = axisType.indexOf('X');
+						if (axisIndex > -1) {
+							axisType.splice(axisIndex, 1);
+						}
+					}
+					if (!(axisMask & MASK_PAYLOAD_SENSOR_AXIS_Y_MASK)) {
+						var axisIndex = axisType.indexOf('Y');
+						if (axisIndex > -1) {
+							axisType.splice(axisIndex, 1);
+						}
+					}
+					if (!(axisMask & MASK_PAYLOAD_SENSOR_AXIS_Z_MASK)) {
+						var axisIndex = axisType.indexOf('Z');
+						if (axisIndex > -1) {
+							axisType.splice(axisIndex, 1);
+						}
+					}
+
+					var logIndex = translateInt32(hexArr[index++], hexArr[index++], hexArr[index++], hexArr[index++]);
+					var initialOffset = translateInt32(hexArr[index++], hexArr[index++], hexArr[index++], hexArr[index++]);
+					var offset = initialOffset;
+					// length = length - (Axis Mask + Mask + Extend Mask + Log Index + Offset)
+					length = length - 10;
+
+					message.FFT = {};
+					if (!(extMask & MASK_PAYLOAD_SENSOR_EXTMASK_MASSIVE_DATA_INFO)) {
+						if (FFTDataStorage.lastSeq === hexArr[1]) {
+							throw "Packet of FFT Data duplicated.";
+						}
+
+						if (('0x'+(FFTDataStorage.lastSeq + 1).toString(16) & 0xff) !== hexArr[1]) { // lost packet
+							var lastPayload = FFTDataStorage.lastPayload;
+							var lastOffset;
+							if (lastPayload[6] & MASK_PAYLOAD_SENSOR_EXTMASK_MASSIVE_DATA_INFO) {
+								lastOffset = translateInt32(lastPayload[29], lastPayload[30], lastPayload[31], lastPayload[32]) + lastPayload[4] - 28;
+							} else {
+								lastOffset = translateInt32(lastPayload[11], lastPayload[12], lastPayload[13], lastPayload[14]) + lastPayload[4] - 10;
+							}
+
+							if (logIndex != FFTDataStorage.logIndex) { // previous FFT Data lost packet and next FFT Data lost first packet
+								var fillLength = (FFTDataStorage.bytesPerAxis * intAxisMaskEnable - 1) - lastOffset;
+								var logIndex = FFTDataStorage.logIndex;
+
+								var objData = {};
+								objData.LOG_INDEX = logIndex;
+								objData.BYTE_OFFSET = lastOffset;
+								objData.LENGTH = fillLength;
+
+								throw "FFT Data lost first packet.";
+							}
+
+							var fillLength = offset - lastOffset;
+							var logIndex = FFTDataStorage.logIndex;
+
+							lostPacketInfo.LOG_INDEX = logIndex;
+							lostPacketInfo.BYTE_OFFSET = lastOffset;
+							lostPacketInfo.LENGTH = fillLength;
+						}
+					}
+
+					var timestamp = FFTDataStorage.timestamp;
+					var logIndex = FFTDataStorage.logIndex;
+					var sampleRate = FFTDataStorage.sampleRate;
+					var points = FFTDataStorage.points;
+					var bytesPerSample = FFTDataStorage.bytesPerSample;
+					var samplesPerAxis = FFTDataStorage.samplesPerAxis;
+					var bytesPerAxis = FFTDataStorage.bytesPerAxis;
+					var totalLength = FFTDataStorage.totalLength;
+					message.FFT.LOG_INDEX = logIndex;
+					message.FFT.TIME = timestamp;
+					message.FFT.SAMPLING_RATE = sampleRate;
+					message.FFT.NUMBER_OF_SAMPLES = points;
+					message.FFT.START_BYTE_OFFSET = offset;
+					var axisData = {};
+					for (var i=0; i<length/bytesPerSample; i++) {
+						var axis = offset < bytesPerAxis ? axisType[0] : (offset < (bytesPerAxis * 2) ? axisType[1] : axisType[2]);
+						var data = (bytesPerSample == 2) ? translateInt16(hexArr[index++], hexArr[index++]) : translateInt32(hexArr[index++], hexArr[index++], hexArr[index++], hexArr[index++]);
+						var sampleIndex = (offset % bytesPerAxis) / bytesPerSample; // by axis
+						// sampleFreq = sampleIndex * sampling rate / number of samples
+						var sampleFreq = sampleIndex * (sampleRate / points);
+
+						if (typeof axisData[axis] == 'undefined') {
+							axisData[axis] = {};
+							axisData[axis].AXIS_TYPE = axis;
+							axisData[axis].START_SAMPLE_INDEX = sampleIndex;
+							axisData[axis].END_SAMPLE_INDEX = (offset % bytesPerAxis) >= ((initialOffset + length) % bytesPerAxis) ? (samplesPerAxis - 1) : (((initialOffset + length) % bytesPerAxis) / bytesPerSample) - 1;
+							axisData[axis].DATA = [];
+						}
+						axisData[axis].DATA.push(data);
+
+						offset += bytesPerSample;
+						if (offset >= totalLength) {
+							index = index + ((length/bytesPerSample - i - 1) * bytesPerSample);
+							break;
+						}
+					}
+					message.FFT.END_BYTE_OFFSET = offset - 1;
+					message.FFT.AXIS_DATA = [];
+					for (i in axisData) {
+						message.FFT.AXIS_DATA.push(axisData[i]);
+					}
+					axisData = {};
+
+					if (offset != (bytesPerAxis * intAxisMaskEnable)) {
+						FFTDataStorage.lastSeq = hexArr[1];
+						FFTDataStorage.lastPayload = hexArr;
+					}
+				}
+				// TBD
+				// if (extMask & MASK_PAYLOAD_SENSOR_EXTMASK_MASSIVE_DATA_LOG) {
+
+				// }
+			}
+		}
+
+		return index;
+	}
+
+	function deviceParse(index){
+		var length;
+		message.Device = {};
+		index++;
+		if (version > 0) {
+			length = hexArr[index++];
+		}
+		mask = hexArr[index++];
+		if (version > 0) length -= 1; // mask
+
+		if(mask & MASK_DEVICE_EVENT){
+			message.Device.Events = hexArr[index++];
+			if (version > 0) length -= 1;
+		}
+		if(mask & MASK_DEVICE_POWER_SOURCE){
+			message.Device.PowerSrc = hexArr[index++];
+			if (version > 0) length -= 1;
+		}
+		if(mask & MASK_DEVICE_BATTERY_LEVEL){
+			message.Device.BatteryLevel = hexArr[index++];
+			if (version > 0) length -= 1;
+		}
+		if(mask & MASK_DEVICE_BATTERY_VOLTAGE){
+			message.Device.BatteryVolt = translateInt16(hexArr[index++], hexArr[index++]);
+			if (version > 0) length -= 2;
+		}
+		if(mask & MASK_DEVICE_TIMESTAMP){
+			message.Device.Time = translateInt32(hexArr[index++], hexArr[index++], hexArr[index++], hexArr[index++]);
+			if (version > 0) length -= 4;
+		}
+		if(mask & MASK_DEVICE_POSITION){
+			message.Device.GNSS = {};
+			var latitudeStr = "";
+			var longitudeStr = "";
+			if(hexArr[index] & MASK_DEVICE_POSITION_LATITUDE){
+				latitudeStr = "S";
+			}else{
+				latitudeStr = "N";
+			}
+			if(hexArr[index] & MASK_DEVICE_POSITION_LONGITUDE){
+				longitudeStr = "W";
+			}else{
+				longitudeStr = "E";
+			}
+			index++;
+
+			message.Device.GNSS.Latitude = (translateInt24(hexArr[index++], hexArr[index++], hexArr[index++]) / 100000).toFixed(5) + ' ' + latitudeStr;
+			message.Device.GNSS.Longitude = (translateInt24(hexArr[index++], hexArr[index++], hexArr[index++]) / 100000).toFixed(5) + ' ' + longitudeStr;
+			if (version > 0) length -= 7;
+		}
+
+		if (version > 0) {
+			if (length > 0) {
+				index += length;
+			}
+		}
+
+		return index;
+	}
+
+	function coilParse(index){
+		var length;
+		var mask = hexArr[index++] & 0x07;
+
+		if (version > 0) {
+			length = hexArr[index++];
+		}
+
+		var channel = hexArr[index++];
+		if (version > 0) length -= 1; // port and channel index
+		var port = (channel & 0x80) >> 7;
+
+		if (mask & MASK_PAYLOAD_COIL_MULTI_CH) {
+			var infoLen = channel & 0x7F;
+			var recordLen = hexArr[index++];
+			var dataMask = hexArr[index++];
+			var i, j, k, maskGroup, chMask, ch = 0;
+			var isSupportStatus = ((dataMask & MASK_PAYLOAD_COIL_STATUS) == MASK_PAYLOAD_COIL_STATUS);
+			var isSupportData = ((dataMask & MASK_PAYLOAD_COIL_VALUE) == MASK_PAYLOAD_COIL_VALUE);
+
+			for (i = 1; i <= infoLen - 2; i++) {
+				maskGroup = hexArr[index++];
+				i++;
+				for (j = 0; j < 7; j++) {
+					if ((maskGroup & (1 << j)) == 0) {
+						ch += 8;
+						continue;
+					}
+					chMask = hexArr[index++];
+					i++;
+					for (k = 0; k < 8; k++) {
+						if ((chMask & (1 << k)) == 0) {
+							ch += 1;
+							continue;
+						}
+						message['RtuCoil'+port+'-'+ch] = {};
+						ch += 1;
+					}
+				}
+			}
+			if (version > 0) length -= infoLen;
+
+			for (i = 0; i < ch; i++) {
+				if ((typeof message['RtuCoil'+port+'-'+i]) != 'undefined') {
+					if (isSupportStatus) {
+						message['RtuCoil'+port+'-'+i].Status = hexArr[index++];
+						if (version > 0) length -= 1;
+					}
+					if (isSupportData) {
+						message['RtuCoil'+port+'-'+i].Data = hexArr[index++];
+						if (version > 0) length -= 1;
+					}
+				}
+			}
+		} else {
+			var channelIndex = channel & 0x7F;
+
+			message['RtuCoil'+port+'-'+channelIndex] = {};
+
+			if (mask & MASK_PAYLOAD_COIL_STATUS) {
+				message['RtuCoil'+port+'-'+channelIndex].Status = hexArr[index++];
+				if (version > 0) length -= 1;
+			}
+			if (mask & MASK_PAYLOAD_COIL_VALUE) {
+				message['RtuCoil'+port+'-'+channelIndex].Data = hexArr[index++];
+				if (version > 0) length -= 1;
+			}
+		}
+
+		if (version > 0) {
+			if (length > 0) {
+				index += length;
+			}
+		}
+
+		return index;
+	}
+
+	function registerParse(index){
+		var length;
+		var mask = hexArr[index++] & 0x07;
+
+		if (version > 0) {
+			length = hexArr[index++];
+		}
+
+		var channel = hexArr[index++];
+		if (version > 0) length -= 1; // port and channel index
+		var port = (channel & 0x80) >> 7;
+
+		if (mask & MASK_PAYLOAD_REGISTER_MULTI_CH) {
+			var infoLen = channel & 0x7F;
+			var recordLen = hexArr[index++];
+			var dataMask = hexArr[index++];
+			var i, j, k, maskGroup, chMask, ch = 0;
+			var isSupportStatus = ((dataMask & MASK_PAYLOAD_REGISTER_STATUS) == MASK_PAYLOAD_REGISTER_STATUS);
+			var isSupportData = ((dataMask & MASK_PAYLOAD_REGISTER_VALUE) == MASK_PAYLOAD_REGISTER_VALUE);
+
+			for (i = 1; i <= infoLen - 2; i++) {
+				maskGroup = hexArr[index++];
+				i++;
+				for (j = 0; j < 7; j++) {
+					if ((maskGroup & (1 << j)) == 0) {
+						ch += 8;
+						continue;
+					}
+					chMask = hexArr[index++];
+					i++;
+					for (k = 0; k < 8; k++) {
+						if ((chMask & (1 << k)) == 0) {
+							ch += 1;
+							continue;
+						}
+						message['RtuRegister'+port+'-'+ch] = {};
+						ch += 1;
+					}
+				}
+			}
+			if (version > 0) length -= infoLen;
+
+			for (i = 0; i < ch; i++) {
+				if ((typeof message['RtuRegister'+port+'-'+i]) != 'undefined') {
+					if (isSupportStatus) {
+						message['RtuRegister'+port+'-'+i].Status = hexArr[index++];
+						if (version > 0) length -= 1;
+					}
+					if (isSupportData) {
+						message['RtuRegister'+port+'-'+i].Data = translateInt16(hexArr[index++], hexArr[index++]);
+						if (version > 0) length -= 2;
+					}
+				}
+			}
+		} else {
+			var channelIndex = channel & 0x7F;
+
+			message['RtuRegister'+port+'-'+channelIndex] = {};
+
+			if (mask & MASK_PAYLOAD_REGISTER_STATUS) {
+				message['RtuRegister'+port+'-'+channelIndex].Status = hexArr[index++];
+				if (version > 0) length -= 1;
+			}
+			if (mask & MASK_PAYLOAD_REGISTER_VALUE) {
+				message['RtuRegister'+port+'-'+channelIndex].Data = translateInt16(hexArr[index++], hexArr[index++]);
+				if (version > 0) length -= 2;
+			}
+		}
+
+		if (version > 0) {
+			if (length > 0) {
+				index += length;
+			}
+		}
+
+		return index;
+	}
+
+	function parsePayLoad(index){
+		//DI
+		if((hexArr[index] & 0xF0) === PAYLOAD_DI_DATA){
+			index = DIParse(index);
+
+			if (index < (arrLength - 1)) { // 1: ignore CRC
+				parsePayLoad(index);
+				return;
+			} else { // Finish DI Parsing.
+				return;
+			}
+		}
+
+		//DO
+		else if((hexArr[index] & 0xF0) === PAYLOAD_DO_DATA){
+			index = DOParse(index);
+
+			if (index < (arrLength - 1)) { //1: ignore CRC
+				parsePayLoad(index);
+				return;
+			} else { // Finish DO Parsing.
+				return;
+			}
+		}
+
+		//AI
+		else if((hexArr[index] & 0xF0) === PAYLOAD_AI_DATA){
+			index = AIParse(index);
+
+			if (index < (arrLength - 1)) { //1: ignore CRC
+				parsePayLoad(index);
+				return;
+			} else { // Finish AI Parsing.
+				return;
+			}
+		}
+
+		//Sensor Type
+		else if((hexArr[index] & 0xF0) === PAYLOAD_SENSOR_DATA){
+			index = sensorParse(index);
+
+			if (index < (arrLength - 1)) { //1: ignore CRC
+				parsePayLoad(index);
+				return;
+			} else { //Finish Sensor Parsing.
+				return;
+			}
+		}
+
+		//Device Status
+		else if((hexArr[index] & 0xF0) === PAYLOAD_DEVICE_DATA){
+			index = deviceParse(index);
+
+			if (index < (arrLength - 1)) { //1: ignore CRC
+				parsePayLoad(index);
+				return;
+			} else { // Finish Device Parsing.
+				return;
+			}
+		}
+
+		//Coil Data
+		else if((hexArr[index] & 0xF0) === PAYLOAD_COIL_DATA){
+			index = coilParse(index);
+
+			if (index < (arrLength - 1)) { //1: ignore CRC
+				parsePayLoad(index);
+				return;
+			} else { // Finish Coil Parsing.
+				return;
+			}
+		}
+
+		//Register Data
+		else if((hexArr[index] & 0xF0) === PAYLOAD_REGISTER_DATA){
+			index = registerParse(index);
+
+			if (index < (arrLength - 1)) { //1: ignore CRC
+				parsePayLoad(index);
+				return;
+			} else { // Finish Register Parsing.
+				return;
+			}
+		}
+	}
+
+	function getSourceAddressLength(address)
+	{
+		var addressLength = 0;
+
+		if(address != "" && address != null){
+			addressLength = address.length / 2;
+		}
+
+		return addressLength;
+	}
+
+	function checkFrameLength()
+	{
+		var addressLength = getSourceAddressLength(message.SourceAddress);
+
+		if((message.TotalLength + addressLength + 4) != arrLength){ //4: Frame control + Sequence number + length + CRC
+			return false;
+		}else{
+			return true;
+		}
+	}
+
+	function CrcCalc(u8Arr, u16Length)
+	{
+		var  u16i;
+		var u8CRC = 0xFF;
+
+		for (u16i = 0; u16i < u16Length; u16i++)
+		{
+			u8CRC = au8CRC8_Pol07_Table[u8CRC ^ u8Arr[u16i]];
+		}
+		return u8CRC;
+	}
+
+    function checkPayloadLength(hexArr)
+	{
+		var sourceAddressLen = 0;
+		if((hexArr[0] & MASK_HEADER_ADDRESS_MODE) === MASK_HEADER_ADDRESS_2_OCTECT){
+			sourceAddressLen = 2;
+		}else if((hexArr[0] & MASK_HEADER_ADDRESS_MODE) === MASK_HEADER_ADDRESS_8_OCTECT){
+			sourceAddressLen = 8;
+		}
+		// (Octet)packet length - Frame Control - Frame Sequence Number - Total Length - Source Address - CRC !== payload length
+		if (hexArr.length - 1 - 1 - 1 - sourceAddressLen - 1 !== hexArr[2]) {
+			return false;
+		} else {
+			return true;
+		}
+	}
+
+    ////////////////////////
+    // Main
+    ////////////////////////
+    try {
+        if (input == undefined || input.bytes == undefined) {
+            return {
+				data: {
+                	payload: "Error: No data is received"
+				}
+            };
+        }
+
+        hexArr = input.bytes;
+
+        if (hexArr.length < MIN_FRAME_LENGTH){
+            return {
+				data: {
+                	payload: "received frame length error"
+				}
+            };
+		}
+
+        // check frame structure version
+		version = (hexArr[0] & MASK_HEADER_FRAME_VERSION);
+
+        //check if this is first segment
+		if(!(hexArr[0] & MASK_HEADER_FIRST_SEGMENT)){
+            return {
+				data: {
+                	payload: "fragmentation message, please use higher transmission data rate on your device"
+				}
+            };
+		}else{
+			if (!checkPayloadLength(hexArr)) {
+				return {
+					data: {
+                    	payload: "fragmentation message, please use higher transmission data rate on your device"
+					}
+                };
+			}
+		}
+
+        arrLength = hexArr.length;
+        // get sequence number
+		message.SequenceNumber = hexArr[++arrayIndex];
+		// get payload length
+		message.TotalLength = hexArr[++arrayIndex];
+
+        var sourceAddress = "";
+
+        // check WHDR header: source address
+		if((hexArr[0] & MASK_HEADER_ADDRESS_MODE) === MASK_HEADER_ADDRESS_NONE){ //No source address
+			arrayIndex++;
+			message.SourceAddress = null;
+		}else if((hexArr[0] & MASK_HEADER_ADDRESS_MODE) === MASK_HEADER_ADDRESS_2_OCTECT){ //2 octects source address
+			arrayIndex++;
+			for(i = arrayIndex; i < (arrayIndex+2); i++){
+				sourceAddress = sourceAddress + addZero(hexArr[i].toString(16));
+			}
+			message.SourceAddress = sourceAddress;
+			arrayIndex += 2;
+		}else if((hexArr[0] & MASK_HEADER_ADDRESS_MODE) === MASK_HEADER_ADDRESS_8_OCTECT){ //8 octects source address
+			arrayIndex++;
+			for(i = arrayIndex; i < (arrayIndex+8); i++){
+				sourceAddress = sourceAddress + addZero(hexArr[i].toString(16));
+			}
+			message.SourceAddress = sourceAddress;
+			arrayIndex += 8;
+		}
+
+        // check CRC
+		hexPayloadArr = hexArr.slice(3 + getSourceAddressLength(message.SourceAddress), hexArr.length - 1);
+		var calculateCRC = CrcCalc(hexPayloadArr, hexPayloadArr.length);
+		if (version > 0) {
+			calculateCRC = ~calculateCRC & 0xff; // JavaScript bitwise operators are converted to signed 32-bit integers
+		}
+
+		if(calculateCRC != hexArr[hexArr.length-1]){
+            return {
+                data: {
+                    payload: "Frame CRC check failed."
+                }
+            };
+		}
+
+        // check if frame legnth is correct
+		if(message.SourceAddress != null && !checkFrameLength()){
+			return {
+                data: {
+                    payload: "Frame length error"
+                }
+            };
+		}
+
+		// Parse Payload
+		parsePayLoad(arrayIndex);
+    } catch(ex) {
+        return {
+			data: {
+            	payload: "Error: Parser failed. " + ex
+			}
+        };
+    }
+
+    ////////////////////////
+    // Return data
+    ////////////////////////
+    return {
+        data: {
+            payload: message
+        }
+    };
+}
+// --- Wrapper for UI ---
+function parseHexString(hexString) {
+    // Remove spaces and 0x prefix
+    hexString = hexString.replace(/\s+/g, '').replace(/^0x/i, '');
+    
+    // Convert to byte array
+    var bytes = [];
+    for (var i = 0; i < hexString.length; i += 2) {
+        bytes.push(parseInt(hexString.substr(i, 2), 16));
+    }
+
+    var input = {
+        bytes: bytes,
+        fPort: 1 // Default port
+    };
+
+    try {
+        var result = decodeUplink(input);
+        return result; // Returns { data: { payload: ... } }
+    } catch (e) {
+        return { error: e.toString() };
+    }
+}
+
+</script>
+    <script>
+/**
+ * Advanetch LoRa Downlink Generator
+ * Based on Payload Format Spec v1.36
+ */
+
+const DownlinkGenerator = {
+    // Definitions based on Spec
+    DEFS: {
+        "0x0": { // DI
+            "1": { name: "Start/Stop Counter", type: "select", opts: { 1: "Start", 0: "Stop" }, len: 1, cmdId: 1, desc: "Control the counter operation" },
+            "2": { name: "Get/Clear Overflow", type: "fixed", val: 0, len: 1, cmdId: 2, desc: "Clear Overflow Status (No params)" },
+            "3": { name: "Clear Counter", type: "fixed", val: 1, len: 1, cmdId: 3, desc: "Reset Counter Value to 0" },
+            "4": { name: "Clear L2H Latch", type: "fixed", val: 0, len: 1, cmdId: 4, desc: "Clear Latch Status" },
+            "5": { name: "Clear H2L Latch", type: "fixed", val: 0, len: 1, cmdId: 5, desc: "Clear Latch Status" },
+            "6": { name: "Set Conv. Interval", type: "number", unit: "sec", scale: 1, len: 4, cmdId: 6, max: 86400, desc: "Update Interval in seconds (e.g. 60 = 1 min)" }
+        },
+        "0x1": { // DO
+            "1": { name: "Set Signal Logic", type: "select", opts: { 1: "High", 0: "Low" }, len: 1, cmdId: 1 },
+            "2": { name: "Set Pulse Mode", type: "select", opts: { 1: "Enable", 0: "Disable" }, len: 1, cmdId: 2 },
+            "3": { name: "Stop Pulse", type: "fixed", val: 1, len: 1, cmdId: 3 }
+        },
+        "0x3": { // AI
+            "1": { name: "Clear High Alarm", type: "fixed", val: 0, len: 1, cmdId: 1 },
+            "2": { name: "Clear Low Alarm", type: "fixed", val: 0, len: 1, cmdId: 2 },
+            "3": { name: "Clear Max Value", type: "fixed", val: 1, len: 1, cmdId: 3 },
+            "4": { name: "Clear Min Value", type: "fixed", val: 1, len: 1, cmdId: 4 },
+            "5": { name: "Set Conv. Interval", type: "number", unit: "sec", scale: 1, len: 4, cmdId: 5 }
+        },
+        "0x5_0": { // Sensor (Temp/Hum)
+            "1": { name: "Clear High Alarm", type: "fixed", val: 0, len: 1, cmdId: 1 },
+            "2": { name: "Clear Low Alarm", type: "fixed", val: 0, len: 1, cmdId: 2 },
+            "3": { name: "Clear Max Val", type: "fixed", val: 1, len: 1, cmdId: 3 },
+            "4": { name: "Clear Min Val", type: "fixed", val: 1, len: 1, cmdId: 4 },
+            "5": { name: "Set High Alarm", type: "float", scale: 1000, len: 4, desc: "Value * 1000", cmdId: 5, max: 2147483.647 },
+            "6": { name: "Set Low Alarm", type: "float", scale: 1000, len: 4, desc: "Value * 1000", cmdId: 6, max: 2147483.647 },
+            "7": { name: "Set Offset", type: "float", scale: 1000, len: 4, desc: "Value * 1000", cmdId: 7, max: 2147483.647 }
+        },
+        "0x5_4": { // Sensor (Accel)
+            "1": { name: "Clear Vel. RMS Alarm", type: "fixed", val: 0, len: 1, cmdId: 1 },
+            "5": { name: "Set Vel. RMS Limit", type: "float", scale: 100, len: 4, desc: "Value * 100 (Unit: 0.01 mm/s)", cmdId: 5, max: 42949672.95 },
+            "9": { name: "Get Log (Massive Data)", type: "number", len: 4, desc: "Log Index (0xFFFFFFFF = Latest)", cmdId: 9 },
+            "10": { name: "Read Log Part", type: "composite", parts: [{ id: "idx", type: "number", len: 4, label: "Idx" }, { id: "n", type: "number", len: 2, label: "N (Bytes)" }, { id: "k", type: "number", len: 2, label: "K" }], cmdId: 10 },
+            "11": { name: "Get Log (UTC)", type: "composite", parts: [{ id: "idx", type: "number", len: 4, label: "Idx" }, { id: "utc", type: "datetime", len: 4, label: "UTC" }], cmdId: 11 },
+            "12": { name: "Enable Features", type: "bitmask", len: 2, options: [{ b: 4, l: "Displacement" }, { b: 3, l: "Standard Deviation" }, { b: 2, l: "Skewness" }, { b: 1, l: "Crest Factor" }, { b: 0, l: "Kurtosis" }], desc: "Enable specific features (Bit 4-0)", cmdId: 12, max: 65535 },
+            "14": { name: "Trigger Spec Cmd", type: "fixed", val: 0, len: 0, cmdId: 14 },
+            "15": { name: "Get Feature Data", type: "composite", parts: [{ id: "idx", type: "number", len: 4, label: "Idx" }, { id: "tmp", type: "number", len: 1, label: "Send Temp (1=Yes)" }], cmdId: 15 }
+        },
+        "0x6": { // Device
+            "1_1": { name: "Adjust RTC (UTC)", type: "datetime", len: 4, subType: 1, cmdId: 1, desc: "Config Type 1" },
+            "1_2": { name: "Adjust RTC (ISO)", type: "string", len: 20, desc: "YYYY-MM-DDThh:mm:ssZ", subType: 1, cmdId: 2 },
+            "1_3": { name: "Restart System", type: "fixed_hex", hex: "525354", len: 3, subType: 1, cmdId: 3, desc: "String 'RST'" },
+            "1_4": { name: "Adjust RTC Offset", type: "number", unit: "sec", len: 4, subType: 1, cmdId: 4, desc: "Signed Int (+/- Seconds)", max: 2147483647 },
+            "1_5": { name: "Query FW Ver", type: "fixed", val: 0, len: 1, subType: 1, cmdId: 5 },
+
+            "2_1": { name: "Update Interval", type: "number", unit: "sec", len: 4, subType: 2, cmdId: 1, desc: "Config Type 2 (1~2592000)", max: 2592000 },
+            "2_2": { name: "Schedule", type: "schedule", len: 10, subType: 2, cmdId: 2 },
+
+            "3_1": { name: "Set Class", type: "select", opts: { 1: "Class A", 3: "Class C" }, len: 1, subType: 3, cmdId: 1, desc: "Config Type 3" },
+            "3_2": { name: "Message ACK", type: "select", opts: { 1: "Enable", 0: "Disable" }, len: 1, subType: 3, cmdId: 2 },
+            "3_3": { name: "Retry Counts", type: "number", len: 1, subType: 3, cmdId: 3, max: 255 }
+        },
+        "0x8": { // Register
+            "1": { name: "Set Register Value", type: "number", len: 2, desc: "Value (0~65535)", cmdId: 1, max: 65535 },
+            "128": { name: "Config Scan Interval", type: "composite", parts: [{ id: "mask", type: "number", len: 4, label: "Rule Mask (4 Bytes)" }, { id: "int", type: "number", len: 4, label: "Interval (sec)" }], cmdId: 0x80 }
+        },
+        "0x7": { // Coil
+            "1": { name: "Write Coil", type: "select", opts: { 1: "ON", 0: "OFF" }, len: 1, cmdId: 1 },
+            "128": { name: "Config Scan Interval", type: "composite", parts: [{ id: "mask", type: "number", len: 4, label: "Rule Mask (4 Bytes)" }, { id: "int", type: "number", len: 4, label: "Interval (sec)" }], cmdId: 0x80 }
+        }
+    },
+
+    /**
+     * Generate Hex String
+     * @param {Object} params - { type, cmdKey, ch, range, port, ch485, seq, data: {} }
+     */
+    generate: function (params) {
+        let typeStr = params.type; // "0x5", "0x6" etc
+        let cmdKey = params.cmdKey; // "1", "1_1"
+        let conf = this.DEFS[typeStr][cmdKey];
+        if (!conf) throw "Invalid Command Configuration";
+
+        let cmdId = conf.cmdId;
+        let pData = [];
+
+        // --- Build Data Buffer ---
+        if (conf.type === 'schedule') {
+            // Mode(1), Weekday(1), StartTime(2), EndTime(2), Interval(4)
+            // Using logic from reference but checking spec
+            // Spec: Mode(1), Weekday(1), StartTime(2), EndTime(2), Interval(4)
+            let mode = parseInt(params.data.schMode || 0);
+            let mask = parseInt(params.data.schMask || 0);
+            let sH = parseInt(params.data.schStartH), sM = parseInt(params.data.schStartM);
+            let eH = parseInt(params.data.schEndH), eM = parseInt(params.data.schEndM);
+            let interval = parseInt(params.data.schInt);
+
+            pData.push(mode);
+            pData.push(mask);
+            pData.push(sH, sM);
+            pData.push(eH, eM);
+
+            let b = new Uint32Array([interval]);
+            let u = new Uint8Array(b.buffer);
+            pData.push(u[0], u[1], u[2], u[3]); // Little Endian
+        }
+        else if (conf.type === 'bitmask') {
+            let mask = parseInt(params.data.bitmask || 0);
+            let arr = (conf.len === 2) ? new Uint16Array([mask]) : new Uint8Array([mask]);
+            let buf = new Uint8Array(arr.buffer);
+            for (let i = 0; i < conf.len; i++) pData.push(buf[i]);
+        }
+        else if (conf.type === 'composite') {
+            conf.parts.forEach(p => {
+                let val = params.data[p.id];
+                if (p.type === 'datetime') {
+                    // val should be unix timestamp
+                }
+                let arr;
+                if (p.len === 1) arr = new Uint8Array([val]);
+                else if (p.len === 2) arr = new Uint8Array(new Uint16Array([val]).buffer);
+                else if (p.len === 4) arr = new Uint8Array(new Uint32Array([val]).buffer);
+
+                for (let i = 0; i < p.len; i++) pData.push(arr[i]);
+            });
+        }
+        else if (conf.type === 'fixed') {
+            // No data or fixed value handled by cmdId mainly, but spec says "Write 0" means 1 byte 0?
+            // Looking at Spec: "Clear High Alarm": Write 0. Len 1.
+            // So we need to push the value.
+            if (conf.len > 0) {
+                let val = conf.val;
+                pData.push(val);
+            }
+        }
+        else if (conf.type === 'fixed_hex') {
+            let matches = conf.hex.match(/.{1,2}/g);
+            if (matches) matches.forEach(b => pData.push(parseInt(b, 16)));
+        }
+        else if (conf.type === 'string') {
+            let str = params.data.val || "";
+            for (let i = 0; i < str.length; i++) pData.push(str.charCodeAt(i));
+        }
+        else {
+            // number, float, datetime, select
+            let val = params.data.val;
+            let arr;
+            if (conf.len === 1) arr = new Uint8Array([val]);
+            else if (conf.len === 2) arr = new Uint8Array(new Int16Array([val]).buffer);
+            else if (conf.len === 4) arr = new Uint8Array(new Int32Array([val]).buffer);
+            for (let i = 0; i < conf.len; i++) pData.push(arr[i]);
+        }
+
+        // --- Build Header & Payload ---
+        let payload = [];
+        let typeVal = parseInt(params.type.split('_')[0]); // "0x5_0" -> 0x5
+        let vizInfo = {};
+
+        // 1. RS-485
+        if (typeVal === 0x7 || typeVal === 0x8) {
+            let byte1 = (typeVal & 0xF) << 4;
+            let port = parseInt(params.port);
+            let chL = parseInt(params.ch485);
+            let byteCh = (port << 7) | (chL & 0x7F);
+            let segLen = 1 + pData.length;
+
+            payload = [byte1, byteCh, segLen, cmdId, ...pData];
+            vizInfo = { byte1: byte1, byteCh: byteCh, segLen: segLen };
+        }
+        // 2. Sensor
+        else if (typeVal === 0x5) {
+            let range = parseInt(params.range);
+            let byte1 = ((typeVal & 0xF) << 4) | (range & 0xF);
+            let mask = 0;
+            if (range === 4) { // Accel
+                // User Feedback: Allow selecting Axes.
+                // Spec Update: Bit 7=Z, Bit 6=Y, Bit 5=X
+                mask = 0;
+                if (params.data.axisZ) mask |= 0x80;
+                if (params.data.axisY) mask |= 0x40;
+                if (params.data.axisX) mask |= 0x20;
+            } else {
+                // Temp: Channel Mask
+                // Spec: "Header: 0x5 ... Byte 2: CH Index ... Wait.
+                // Spec line 211: "Header: 0x3 + CH Index".
+                // Spec line 221: "Header: 0x5 + Range". 
+                // Wait, for Temp (Range 0), does it have Byte 2?
+                // Spec line 225 "Range 0: Temperature / Humidity". No Byte 2 mentioned explicitly in header description?
+                // Check Uplink logic...
+                // Check reference code for 0x5 Temp:
+                // "else { let ch=parseInt(document.getElementById('genCh').value); mask=(ch&7)<<5; }"
+                // (ch&7)<<5 means bits 7-5.
+                // So it seems matching.
+                let ch = parseInt(params.ch) || 0;
+                // mask = (ch & 0x7) << 5; // Old logic
+                mask = 0; // User Request: Fixed to 0
+            }
+            let segLen = 1 + pData.length;
+            payload = [byte1, mask, segLen, cmdId, ...pData];
+            vizInfo = { byte1: byte1, mask: mask, segLen: segLen };
+        }
+        // 3. Standard (0x0, 0x1, 0x3, 0x6)
+        else {
+            let low = 0;
+            if (typeVal === 0x6) {
+                low = conf.subType;
+            } else {
+                // 0x0, 0x1, 0x3: HC Index (0-15)
+                low = parseInt(params.ch) & 0xF;
+            }
+
+            let byte1 = ((typeVal & 0xF) << 4) | (low & 0xF);
+            let segLen = 1 + pData.length;
+            payload = [byte1, segLen, cmdId, ...pData];
+            vizInfo = { byte1: byte1, segLen: segLen };
+        }
+
+        // --- Checksum ---
+        // Algo: CRC-8-CCITT (Poly 0x07, Init 0xFF).
+        // Spec says: "WCRC ... 計算範圍: 僅針對 WPayload (不包含 WHDR)".
+        // Wait. "WPayload" in LoRaWAN usually means the Application Payload.
+        // "WHDR" is Byte 0 of the LoRaWAN frame?
+        // Spec Line 9: "LoRaWAN Frame Structure: WHDR (1 Byte) + WPayload (N Bytes) + WCRC".
+        // BUT the Downlink Generator in Ref code calculates CRC over the *entire* generated sequence (except the LoRaWAN header 0x80?).
+        // Use Ref Code logic:
+        // `let head=[0x80,seq,payload.length];`
+        // `let full=[...head, ...payload, crc];` (Wait, CRC at end).
+        // Ref Line 566: `let crc=0xFF; for(let b of payload){...}`
+        // It calculates CRC over `payload`.
+        // `payload` in Ref code includes the Command Header (Byte 1, etc).
+        // Let's trace Ref Code `payload`.
+        // `payload=[byte1, segLen, cmdId, ...data];`
+        // `byte1` is the IO Type/Channel byte.
+        // So `payload` corresponds to `WPayload`.
+        // The `head` (0x80...) is the `WHDR` (Advantech Prop Header?).
+        // Spec Line 20: "WHDR Header ... Byte 0".
+        // So the "Header" (Byte 0) is 0x80 (Start=1, Ver=0, Addr=0).
+        // And CRC covers WPayload.
+        // So I should calculate CRC over `payload`.
+
+        let crc = 0xFF;
+        for (let b of payload) {
+            crc ^= b;
+            for (let k = 0; k < 8; k++) {
+                crc = (crc & 0x80) ? ((crc << 1) ^ 0x07) : (crc << 1);
+            }
+            crc &= 0xFF;
+        }
+
+        // --- Final Assembly ---
+        // --- Final Assembly ---
+        // Header: 0x80 (First Seg), Sequence (params.seq), Total Len (payload.length)
+        let seq = parseInt(params.seq) || 0;
+        let head = [0x80, seq, payload.length];
+        let full = [...head, ...payload, crc];
+
+        // Format Helper
+        const toHex = (arr) => arr.map(b => b.toString(16).toUpperCase().padStart(2, '0')).join('');
+
+        // Return structured object if valid, else plain hex string (backward compat if needed, but we'll change usage)
+        return {
+            hex: toHex(full),
+            parts: {
+                header: toHex(head),
+                // Viz breakdown
+                whdr: toHex([0x80]),
+                seq: toHex([seq]),
+                len: toHex([payload.length]),
+                typeRange: vizInfo.byte1 ? toHex([vizInfo.byte1]) : "",
+                mask: vizInfo.mask !== undefined ? toHex([vizInfo.mask]) : "",
+                segLen: vizInfo.segLen !== undefined ? toHex([vizInfo.segLen]) : "",
+                cmdId: toHex([cmdId]),
+                data: toHex(pData),
+                crc: toHex([crc])
+            }
+        };
+    }
+};
+
+</script>
+    <script>
+/**
+ * Advantech LoRa Downlink Decoder
+ * Reverse-engineers Hex strings back to Command Parameters
+ */
+
+const DownlinkDecoder = {
+    /**
+     * Decode Hex String
+     * @param {string} hexStr - e.g. "80000550000505..."
+     * @returns {Object} { error, header, payload, cmdName, params: {} }
+     */
+    decode: function (hexStr) {
+        // 1. Basic Cleaning & Validation
+        hexStr = hexStr.replace(/\s+/g, '').toUpperCase();
+        if (!/^[0-9A-F]+$/.test(hexStr)) return { error: "Invalid Hex String" };
+        if (hexStr.length < 8) return { error: "Length too short" };
+        if (hexStr.length % 2 !== 0) return { error: "Odd number of characters" };
+
+        let bytes = [];
+        for (let i = 0; i < hexStr.length; i += 2) bytes.push(parseInt(hexStr.substr(i, 2), 16));
+
+        // 2. Validate Header (Byte 0 = 0x80)
+        // Spec Line 20: WHDR = 0x80 usually
+        if (bytes[0] !== 0x80) {
+            // Soft warning, or just proceed? Advantech usually uses 0x80.
+            // Let's note it but proceed.
+        }
+
+        let seq = bytes[1];
+        let len = bytes[2];
+
+        // Validate Length (Byte 2 is length of following payload + CRC?)
+        // Generator logic: head(3) + payload(N) + crc(1).
+        // Generator: let head = [0x80, seq, payload.length];
+        // So Byte 2 is length of (Byte 3 ... End-1).
+        // Total bytes = 3 + len + 1.
+        if (bytes.length !== 3 + len + 1) {
+            return { error: `Length mismatch. Header says ${len} bytes payload, but found ${bytes.length - 4}` };
+        }
+
+        let checksum = bytes[bytes.length - 1]; // Last byte
+        let payloadBytes = bytes.slice(3, bytes.length - 1);
+
+        // 3. Validate CRC (Optional but good)
+        // Generator CRC covers payloadBytes.
+        let calcCrc = 0xFF;
+        for (let b of payloadBytes) {
+            calcCrc ^= b;
+            for (let k = 0; k < 8; k++) {
+                calcCrc = (calcCrc & 0x80) ? ((calcCrc << 1) ^ 0x07) : (calcCrc << 1);
+            }
+            calcCrc &= 0xFF;
+        }
+        if (calcCrc !== checksum) {
+            // return { error: `Invalid Checksum. Expected ${calcCrc.toString(16).toUpperCase()}, Found ${checksum.toString(16).toUpperCase()}` };
+            // Allow viewing even if CRC bad, but warn?
+            // For strictness, let's return error for now.
+            return { error: `Invalid Checksum (Exp: ${calcCrc.toString(16).toUpperCase().padStart(2, '0')})` };
+        }
+
+        // 4. Parse Payload Header
+        // Payload: [Byte1 (Type/Ch), (Mask?), SegLen, CmdId, ...Data]
+        let ptr = 0;
+        let byte1 = payloadBytes[ptr++];
+
+        // Identify Type
+        // 0x5_ : Sensor
+        // 0x6_ : Device
+        // 0x0_, 0x1_, 0x3_ : I/O
+        // 0x7_, 0x8_ : RS485
+
+        let typeNibble = (byte1 & 0xF0) >> 4;
+        let subNibble = (byte1 & 0x0F);
+
+        let realType = "";
+        let chInfo = {};
+        let mask = 0;
+
+        // Matching logic from Generator
+        if (typeNibble === 0x5) {
+            // Sensor
+            // Byte 1 Low Nibble is range
+            let range = subNibble; // 0 or 4 
+            realType = (range === 4) ? "0x5_4" : "0x5_0";
+
+            // Next byte logic
+            // Generator 0x5_4 (Accel): byte1, mask, segLen...
+            // Generator 0x5_0 (Temp): byte1, mask, segLen...
+            // In Generator: mask is pushed for both 0x5 types.
+            if (ptr >= payloadBytes.length) return { error: "Payload too short for Sensor" };
+            mask = payloadBytes[ptr++];
+            // Accel Mask decoding? Done later in params
+        }
+        else if (typeNibble === 0x6) {
+            // Device
+            realType = "0x6";
+            // No channel/mask byte for 0x6 in Generator logic?
+            // Generator: `let payload = [byte1, segLen, cmdId, ...pData];`
+            // So NO mask byte.
+        }
+        else if (typeNibble === 0x7 || typeNibble === 0x8) {
+            // RS485
+            realType = `0x${typeNibble}`;
+            // Generator: `let byteCh = (port << 7) | (chL & 0x7F);`
+            // `payload = [byte1, byteCh, segLen, cmdId, ...]`
+            if (ptr >= payloadBytes.length) return { error: "Payload too short for RS485" };
+            let byteCh = payloadBytes[ptr++];
+            chInfo.port = (byteCh >> 7) & 1;
+            chInfo.chIndex = byteCh & 0x7F;
+        }
+        else {
+            // I/O: 0x0, 0x1, 0x3
+            realType = `0x${typeNibble}`;
+            // Generator: `payload = [byte1, segLen, cmdId, ...]`
+            // subNibble is channel index.
+            chInfo.chIndex = subNibble;
+        }
+
+        // Next is SegLen (Segment Length) - Usually 1 + DataLen
+        // But we can just read CmdId and verify DEFS.
+        if (ptr >= payloadBytes.length) return { error: "Missing Segment Length" };
+        let segLen = payloadBytes[ptr++];
+
+        if (ptr >= payloadBytes.length) return { error: "Missing Command ID" };
+        let cmdId = payloadBytes[ptr++];
+
+        // 5. Lookup Command in DEFS
+        // We need to find the Key in DEFS based on cmdId
+        // generator.js: DEFS[realType][key] -> { cmdId: N }
+
+        if (typeof DownlinkGenerator !== 'undefined' && DownlinkGenerator.DEFS) {
+            // Global access assumed
+        } else {
+            return { error: "Generator definitions not found" };
+        }
+
+        let defs = DownlinkGenerator.DEFS[realType];
+        if (!defs) return { error: `Unknown Type Code: 0x${typeNibble.toString(16)} (Real: ${realType})` };
+
+        let matchedKey = null;
+        let matchedConf = null;
+
+        for (let k in defs) {
+            let conf = defs[k];
+            // Special handling for subType in 0x6 (Device)
+            // Generator 0x6: byte1 low nibble is subType.
+            // `low = conf.subType`
+            if (realType === "0x6") {
+                if (conf.cmdId === cmdId && conf.subType === subNibble) {
+                    matchedKey = k;
+                    matchedConf = conf;
+                    break;
+                }
+            } else {
+                if (conf.cmdId === cmdId) {
+                    matchedKey = matchedConf = k;
+                    matchedConf = conf;
+                    break;
+                }
+            }
+        }
+
+        if (!matchedConf) {
+            return {
+                error: null,
+                header: { type: realType, seq: seq, len: len },
+                cmdName: `Unknown Command (ID: ${cmdId})`,
+                params: { raw: this.toHex(payloadBytes.slice(ptr)) }
+            };
+        }
+
+        // 6. Decode Parameters
+        let dataLen = (payloadBytes.length - ptr); // Remaining bytes
+        let dataBytes = payloadBytes.slice(ptr);
+        let params = {};
+
+        try {
+            this.decodeData(dataBytes, matchedConf, params, mask);
+        } catch (e) {
+            params._error = "Decoding failed: " + e;
+        }
+
+        // Add context info
+        if (realType.startsWith('0x5')) {
+            if (realType === '0x5_4') {
+                // Decode Accel Mask
+                let axes = [];
+                if (mask & 0x80) axes.push('Z');
+                if (mask & 0x40) axes.push('Y');
+                if (mask & 0x20) axes.push('X');
+                params._target = "Accel Axes: " + (axes.length ? axes.join(',') : 'None');
+            } else {
+                params._target = "Sensor Mask: " + mask; // Though user requested fixed 0, might receive others
+            }
+        } else if (chInfo.chIndex !== undefined) {
+            params._target = "Channel: " + chInfo.chIndex;
+        }
+
+        return {
+            error: null,
+            header: { seq: seq, len: len, type: realType },
+            cmdName: matchedConf.name,
+            params: params
+        };
+    },
+
+    decodeData: function (bytes, conf, out, mask) {
+        let ptr = 0;
+        const read8 = () => bytes[ptr++];
+        const read16 = () => { let v = (bytes[ptr + 1] << 8) | bytes[ptr]; ptr += 2; return (v & 0x8000) ? v - 0x10000 : v; }; // Signed Little Endian usually for values?
+        // Generator uses TypedArrays. Uint16Array uses system endianness (usually Little Endian).
+        // Let's assume Little Endian generally.
+        // Generator: new Int16Array([val]).buffer -> Uint8Array
+        // Yes, Little Endian.
+        const read16u = () => { let v = (bytes[ptr + 1] << 8) | bytes[ptr]; ptr += 2; return v; };
+        const read32 = () => { let v = (bytes[ptr + 3] << 24) | (bytes[ptr + 2] << 16) | (bytes[ptr + 1] << 8) | bytes[ptr]; ptr += 4; return v; };
+        const read32u = () => { let v = (bytes[ptr + 3] << 24) | (bytes[ptr + 2] << 16) | (bytes[ptr + 1] << 8) | bytes[ptr]; ptr += 4; return v >>> 0; };
+
+        if (conf.type === 'fixed') {
+            if (conf.len > 0) {
+                let val = (conf.len === 4) ? read32() : ((conf.len === 2) ? read16() : read8());
+                out.Value = val;
+                if (val !== conf.val) out.Value += ` (Exp: ${conf.val})`;
+            }
+            return;
+        }
+        else if (conf.type === 'fixed_hex') {
+            let hex = "";
+            // Read len bytes
+            for (let k = 0; k < conf.len; k++) hex += read8().toString(16).toUpperCase().padStart(2, '0');
+            out.Value = `0x${hex}`;
+
+            // Try ASCII for RST
+            if (conf.hex === "525354") out.Value += " (RST)";
+
+            if (hex !== conf.hex) out.Warning = `Mismatch (Exp: 0x${conf.hex})`;
+            return;
+        }
+
+        if (conf.type === 'schedule') {
+            // Mode(1), Mask(1), SH(1), SM(1), EH(1), EM(1), Int(4)
+            // Generator: `pData.push(mode, mask, sH, sM, eH, eM, ...u32)`
+            out.Mode = read8();
+            let dMask = read8();
+            let days = [];
+            ['S', 'M', 'T', 'W', 'T', 'F', 'S'].forEach((d, i) => { if (dMask & (1 << i)) days.push(d); });
+            out.Days = days.join(',');
+
+            out.Start = `${read8()}:${read8().toString().padStart(2, '0')}`;
+            out.End = `${read8()}:${read8().toString().padStart(2, '0')}`;
+            out.Interval = read32u() + ' sec';
+        }
+        else if (conf.type === 'bitmask') {
+            let val = (conf.len === 2) ? read16u() : read8();
+            let feats = [];
+            conf.options.forEach(o => {
+                if (val & (1 << o.b)) feats.push(o.l);
+            });
+            out.Selected = feats.join(', ') || "None";
+            out.Raw = "0x" + val.toString(16).toUpperCase();
+        }
+        else if (conf.type === 'composite') {
+            conf.parts.forEach(p => {
+                let val;
+                if (p.len === 1) val = read8();
+                else if (p.len === 2) val = read16u(); // Assuming unsigned for indices/sizes usually?
+                else if (p.len === 4) {
+                    val = (p.type === 'number') ? read32u() : read32u(); // IDs usually unsigned
+                }
+
+                if (p.type === 'datetime') {
+                    // val is unix timestamp
+                    out[p.label] = new Date(val * 1000).toISOString().replace('T', ' ').substr(0, 19);
+                } else {
+                    out[p.label] = val;
+                }
+            });
+        }
+        else if (conf.type === 'string') {
+            // ASCII
+            let s = "";
+            while (ptr < bytes.length) s += String.fromCharCode(read8());
+            out.Value = s;
+        }
+        else if (conf.type === 'datetime') { // 32bit u
+            let ts = read32u();
+            out.Date = new Date(ts * 1000).toISOString().replace('T', ' ').substr(0, 19);
+        }
+        else if (conf.type === 'float') { // Scaled integer
+            let raw = (conf.len === 4) ? read32() : read16(); // Signed
+            let val = raw / conf.scale;
+            out.Value = val;
+        }
+        else if (conf.type === 'number') {
+            // Depending on Desc implies signed/unsigned?
+            // Generator uses Int32Array/Int16Array -> Signed.
+            let val = (conf.len === 4) ? read32() : ((conf.len === 2) ? read16() : read8());
+            out.Value = val;
+            if (conf.unit) out.Value += " " + conf.unit;
+        }
+        else if (conf.type === 'select') {
+            let val = read8(); // Usually len 1
+            out.Value = conf.opts[val] || val;
+        }
+    },
+
+    toHex: function (arr) {
+        return Array.from(arr).map(b => b.toString(16).toUpperCase().padStart(2, '0')).join('');
+    }
+};
+
+</script>
+    <script>
+/**
+ * mac_cmd.js
+ * 
+ * Handles Generator and Decoder logic for LoRaWAN 1.0.4 MAC Commands.
+ */
+
+const MacCmd = {
+    // Command Definitions (CID -> { name, upLen, downLen })
+    // upLen: Bytes following CID in Uplink
+    // downLen: Bytes following CID in Downlink
+    DEFS: {
+        '0x02': { name: 'LinkCheck', upLen: 0, downLen: 2 },     // Req(Up,0), Ans(Down,2)
+        '0x03': { name: 'LinkADR', upLen: 1, downLen: 4 },       // Ans(Up,1), Req(Down,4)
+        '0x04': { name: 'DutyCycle', upLen: 0, downLen: 1 },     // Ans(Up,0), Req(Down,1)
+        '0x05': { name: 'RXParamSetup', upLen: 1, downLen: 4 },  // Ans(Up,1), Req(Down,4)
+        '0x06': { name: 'DevStatus', upLen: 2, downLen: 0 },     // Ans(Up,2), Req(Down,0)
+        '0x07': { name: 'NewChannel', upLen: 1, downLen: 5 },    // Ans(Up,1), Req(Down,5)
+        '0x08': { name: 'RXTimingSetup', upLen: 0, downLen: 1 }, // Ans(Up,0), Req(Down,1)
+        '0x09': { name: 'TXParamSetup', upLen: 0, downLen: 1 },  // Ans(Up,0), Req(Down,1)
+        '0x0A': { name: 'DlChannel', upLen: 1, downLen: 4 },     // Ans(Up,1), Req(Down,4)
+        '0x0D': { name: 'DeviceTime', upLen: 0, downLen: 5 },    // Req(Up,0), Ans(Down,5)
+    },
+
+    // --- Generator Logic ---
+    generate: function (cid, isUplink, params) {
+        let def = this.DEFS[cid];
+        if (!def) return { error: "Unknown CID" };
+
+        let hex = cid.replace('0x', '');
+
+        // --- Uplink Generation (Answers mostly) ---
+        if (isUplink) {
+            // Note: LinkCheckReq(0x02) and DeviceTimeReq(0x0D) are Uplink but have NO payload.
+
+            if (cid === '0x03' || cid === '0x05' || cid === '0x07' || cid === '0x0A') { // Status byte (LinkADR, RXParam, NewCh, DlCh)
+                let status = 0;
+                if (params.ack1) status |= (1 << 0);
+                if (params.ack2) status |= (1 << 1);
+                if (params.ack3) status |= (1 << 2);
+                hex += this.toHex(status, 1);
+            }
+            else if (cid === '0x06') { // DevStatusAns -> Battery(1), SNR(1)
+                hex += this.toHex(params.battery || 0, 1);
+                // SNR is signed 6-bit (-32..31) in lower 6 bits
+                let snr = parseInt(params.snr || 0);
+                if (snr < 0) snr += 64; // Two's complement for 6 bits? No, spec says "signed integer". Assuming standard casting.
+                // Spec says: "00111111" = 63? No, range is -32 to 31.
+                // 31 = 0x1F. -32 = 0x20 (bit 5 is sign).
+                // Let's simpler logic: mask to 6 bits.
+                hex += this.toHex(snr & 0x3F, 1);
+            }
+        }
+        // --- Downlink Generation (Requests mostly, but LinkCheck/DevTime Ans are Downlink) ---
+        else {
+            if (cid === '0x02') { // LinkCheckAns -> Margin(1), GwCnt(1)
+                hex += this.toHex(params.margin || 0, 1);
+                hex += this.toHex(params.gwCnt || 1, 1);
+            }
+            else if (cid === '0x03') { // LinkADRReq -> DR_POW(1), Mask(2), Redun(1)
+                let drPow = ((params.dr & 0xF) << 4) | (params.txPower & 0xF);
+                hex += this.toHex(drPow, 1);
+                hex += this.toHex(params.chMask, 2, true); // LSB
+                let redun = ((params.chMaskCntl & 0x7) << 4) | (params.nbTrans & 0xF);
+                hex += this.toHex(redun, 1);
+            }
+            else if (cid === '0x04') { // DutyCycleReq -> MaxDC(1)
+                hex += this.toHex(params.maxDC & 0xF, 1);
+            }
+            else if (cid === '0x05') { // RXParamSetupReq -> DLSettings(1), Freq(3)
+                let dlSet = ((params.rx1DrOff & 0x7) << 4) | (params.rx2DataRate & 0xF);
+                hex += this.toHex(dlSet, 1);
+                hex += this.toHex(params.freq, 3, true); // LSB
+            }
+            else if (cid === '0x07') { // NewChannelReq -> Idx(1), Freq(3), DR(1)
+                hex += this.toHex(params.chIndex, 1);
+                hex += this.toHex(params.freq, 3, true);
+                let dr = ((params.maxDr & 0xF) << 4) | (params.minDr & 0xF);
+                hex += this.toHex(dr, 1);
+            }
+            else if (cid === '0x08') { // RXTimingSetupReq -> Settings(1)
+                hex += this.toHex(params.delay & 0xF, 1);
+            }
+            else if (cid === '0x09') { // TXParamSetupReq -> EIRP_Dwell(1)
+                let val = ((params.dlDwell ? 1 : 0) << 5) | ((params.ulDwell ? 1 : 0) << 4) | (params.maxEirp & 0xF);
+                hex += this.toHex(val, 1);
+            }
+            else if (cid === '0x0A') { // DlChannelReq -> Idx(1), Freq(3)
+                hex += this.toHex(params.chIndex, 1);
+                hex += this.toHex(params.freq, 3, true);
+            }
+            else if (cid === '0x0D') { // DeviceTimeAns -> GPS(4), Frac(1)
+                hex += this.toHex(params.seconds || 0, 4, true); // LE
+                hex += this.toHex(params.frac || 0, 1);
+            }
+        }
+
+        return hex.toUpperCase();
+    },
+
+    // --- Decoder Logic ---
+    decode: function (hexStr, isUplink) {
+        if (!hexStr) return { commands: [], error: "Empty Input" };
+        hexStr = hexStr.replace(/\s+/g, '');
+        let bytes = [];
+        for (let i = 0; i < hexStr.length; i += 2) bytes.push(parseInt(hexStr.substr(i, 2), 16));
+
+        let ptr = 0;
+        let cmds = [];
+        let error = null;
+
+        while (ptr < bytes.length) {
+            let cid = bytes[ptr++];
+            let cidHex = '0x' + cid.toString(16).toUpperCase().padStart(2, '0');
+            let def = this.DEFS[cidHex];
+
+            if (!def) {
+                // Proprietary or Invalid
+                if (cid >= 0x80) {
+                    // Assume proprietary? Unknown length. Stop.
+                    cmds.push({ cid: cidHex, name: "Proprietary/Unknown", params: {}, raw: bytes.slice(ptr - 1) });
+                    break;
+                }
+                error = `Unknown CID ${cidHex} at byte ${ptr - 1}`;
+                break;
+            }
+
+            // Determine Length based on Direction
+            // def.upLen is for Uplink, def.downLen is for Downlink
+            let len = isUplink ? def.upLen : def.downLen;
+
+            if (ptr + len > bytes.length) {
+                error = `Truncated payload for ${def.name}. Needed ${len} bytes, has ${bytes.length - ptr}`;
+                break;
+            }
+
+            // Extract Payload Bytes
+            let payload = bytes.slice(ptr, ptr + len);
+            ptr += len;
+
+            // Decode Parameters based on CID
+            let params = this.decodePayload(cidHex, payload, isUplink);
+
+            cmds.push({
+                cid: cidHex,
+                name: def.name,
+                len: len,
+                params: params,
+                raw: [cid, ...payload]
+            });
+        }
+
+        return { commands: cmds, error: error };
+    },
+
+    decodePayload: function (cid, bytes, isUplink) {
+        let p = {};
+        if (isUplink) {
+            // --- UPLINK (Ans) ---
+            // LinkCheckReq (0x02) is Up (Empty)
+            // DeviceTimeReq (0x0D) is Up (Empty)
+
+            if (cid === '0x03' || cid === '0x05' || cid === '0x07' || cid === '0x0A') {
+                let status = bytes[0];
+                p.PowerAck = (status & 1) ? 1 : 0;
+                p.DRAck = (status & 2) ? 1 : 0;
+                p.ChMaskAck = (status & 4) ? 1 : 0;
+                // Note: bits meaning vary slightly by command, but generally ACK bits
+                // Note: bits meaning vary slightly by command, but generally ACK bits
+                if (cid === '0x07') { // NewChannelAns
+                    p.ChannelFreqAck = p.PowerAck;
+                    p.DrRangeAck = p.DRAck;
+                    delete p.PowerAck;
+                    delete p.DRAck; // Data Rate Ack -> DrRangeAck
+                    delete p.ChMaskAck; // RFU
+                }
+            }
+            else if (cid === '0x06') { // DevStatusAns
+                p.Battery = bytes[0]; // 0=Ext, 255=Unk
+                // Spec: "margin is the demodulation SNR in dB rounded to nearest integer... range -32..31"
+                // It's a signed 6-bit integer.
+                let rawSnr = bytes[1] & 0x3F;
+                if (rawSnr > 31) rawSnr -= 64;
+                p.SNR = rawSnr + " dB";
+            }
+            else if (cid === '0x0D') {
+                // DeviceTimeReq (Up) is Empty!
+            }
+        }
+        else {
+            // --- DOWNLINK (Req/Ans) ---
+            if (cid === '0x02') { // LinkCheckAns
+                p.Margin = bytes[0] + " dB";
+                p.GwCnt = bytes[1];
+            }
+            else if (cid === '0x03') { // LinkADRReq
+                p.DR = (bytes[0] >> 4) & 0xF;
+                p.TXPower = bytes[0] & 0xF;
+                let mask = (bytes[1] | (bytes[2] << 8));
+                p.ChMask = "0x" + mask.toString(16).toUpperCase().padStart(4, '0');
+                p.NbTrans = bytes[3] & 0xF;
+                let cntl = (bytes[3] >> 4) & 0x7;
+                p.ChMaskCntl = cntl;
+
+                // Interpret Channels
+                if (cntl === 6) {
+                    p.MonitoredChs = "All Channels ON";
+                } else if (cntl <= 4) { // Assume standard 16-ch blocks
+                    let chs = [];
+                    for (let i = 0; i < 16; i++) {
+                        if ((mask >> i) & 1) chs.push(i + (cntl * 16));
+                    }
+                    if (chs.length > 0) {
+                        // Format ranges (e.g. 0-7, 8, 10-12)
+                        let ranges = [], start = chs[0], prev = chs[0];
+                        for (let i = 1; i < chs.length; i++) {
+                            if (chs[i] !== prev + 1) {
+                                ranges.push(start === prev ? start : start + "-" + prev);
+                                start = chs[i];
+                            }
+                            prev = chs[i];
+                        }
+                        ranges.push(start === prev ? start : start + "-" + prev);
+                        p.MonitoredChs = ranges.join(", ");
+                    } else {
+                        p.MonitoredChs = "None (Disable Block)";
+                    }
+                } else {
+                    p.MonitoredChs = "Region Specific";
+                }
+            }
+            else if (cid === '0x05') { // RXParamSetupReq
+                p.RX1DROffset = (bytes[0] >> 4) & 0x7;
+                p.RX2DR = bytes[0] & 0xF;
+                p.Freq = ((bytes[1]) | (bytes[2] << 8) | (bytes[3] << 16)) * 100;
+            }
+            else if (cid === '0x0D') { // DeviceTimeAns
+                let seconds = (bytes[0]) | (bytes[1] << 8) | (bytes[2] << 16) | (bytes[3] << 24);
+                p.GPSSeconds = seconds >>> 0;
+                p.Fraction = bytes[4];
+            }
+            else if (cid === '0x04') { // DutyCycleReq
+                p.MaxDC = (bytes[0] & 0xF);
+            }
+            else if (cid === '0x07') { // NewChannelReq
+                p.ChIndex = bytes[0];
+                p.Freq = ((bytes[1]) | (bytes[2] << 8) | (bytes[3] << 16)) * 100;
+                p.MaxDR = (bytes[4] >> 4) & 0xF;
+                p.MinDR = bytes[4] & 0xF;
+            }
+            else if (cid === '0x08') { // RXTimingSetupReq
+                p.Delay = (bytes[0] & 0xF);
+            }
+            else if (cid === '0x09') { // TXParamSetupReq
+                p.DownlinkDwell = (bytes[0] & 0x20) ? 1 : 0;
+                p.UplinkDwell = (bytes[0] & 0x10) ? 1 : 0;
+                p.MaxEIRP = (bytes[0] & 0xF);
+            }
+            else if (cid === '0x0A') { // DlChannelReq
+                p.ChIndex = bytes[0];
+                p.Freq = ((bytes[1]) | (bytes[2] << 8) | (bytes[3] << 16)) * 100;
+            }
+        }
+        return p;
+    },
+
+    toHex: function (val, bytes, littleEndian = false) {
+        let hex = "";
+        for (let i = 0; i < bytes; i++) {
+            let byte = littleEndian ? (val >> (i * 8)) & 0xFF : (val >> ((bytes - 1 - i) * 8)) & 0xFF;
+            hex += byte.toString(16).toUpperCase().padStart(2, '0');
+        }
+        return hex;
+    }
+};
+
+</script>
+    <script>
+
+// --- Uplink UI Logic ---
+function runParser() {
+    let hex = document.getElementById('upHexInput').value.trim();
+    if (!hex) return;
+
+    // Call the wrapper from parser.js
+    let result = parseHexString(hex);
+
+    // Display result
+    let output = document.getElementById('upOutput');
+    if (result.error) {
+        output.innerHTML = `<span style="color: #ff7b72;">${result.error}</span>`;
+    } else {
+        output.innerHTML = syntaxHighlight(result.data.payload || result);
+    }
+}
+
+function loadUpExample() {
+    document.getElementById('upHexInput').value = "811C405008070000000C3200005429E2170000E4011F01CB0046050000CC015A01F500CB0400006601970120016F01030000000073992E6860091B0002940D74992E6877";
+    runParser();
+}
+
+function syntaxHighlight(json) {
+    if (typeof json != 'string') json = JSON.stringify(json, undefined, 2);
+    return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, match => {
+        var cls = 'json-number';
+        if (/^"/.test(match)) {
+            if (/:$/.test(match)) cls = 'json-key';
+            else cls = 'json-string';
+        }
+        return `<span class="${cls}">${match}</span>`;
+    });
+}
+
+// --- Downlink UI Logic ---
+function updateGenCommands() {
+    let type = document.getElementById('genType').value;
+    let rangeGroup = document.getElementById('sensorRangeGroup');
+    let chGroup = document.getElementById('channelGroup');
+    let axisGroup = document.getElementById('axisGroup');
+    let portGroup = document.getElementById('portGroup');
+    let chInput = document.getElementById('genCh');
+    let chHint = document.getElementById('chHint');
+    let sel = document.getElementById('genCmd');
+
+    sel.innerHTML = "";
+    rangeGroup.style.display = 'none';
+    axisGroup.style.display = 'none';
+    portGroup.style.display = 'none';
+
+    // Reset Channel State
+    chGroup.style.display = 'block';
+    chInput.disabled = false;
+    chHint.innerText = "";
+
+    // Determine Real Type Key for DEFS
+    let realType = type;
+
+    if (type === "0x5") {
+        rangeGroup.style.display = 'block';
+        let range = document.getElementById('sensorRange').value;
+        realType = (range === "0") ? "0x5_0" : "0x5_4";
+
+        if (realType === "0x5_4") {
+            chGroup.style.display = 'none';
+            axisGroup.style.display = 'block';
+        } else {
+            chHint.innerText = "Target Channel (Generates Mask Byte)";
+        }
+    } else if (type === "0x6") {
+        chGroup.style.display = 'none';
+        chInput.value = "0";
+    } else if (type === "0x7" || type === "0x8") {
+        chGroup.style.display = 'none';
+        portGroup.style.display = 'flex';
+    }
+
+    // Populate Commands
+    let defs = DownlinkGenerator.DEFS[realType];
+    if (defs) {
+        for (let k in defs) {
+            let opt = document.createElement("option");
+            opt.value = k;
+            opt.text = defs[k].name;
+            sel.appendChild(opt);
+        }
+    }
+    sel.setAttribute('data-real-type', realType);
+    sel.setAttribute('data-real-type', realType);
+    updateGenParams();
+
+    // 5. Handle Fixed Sensor Inputs (User Request)
+    // "Sensor data (I/O Type: 0x5) 的 CH Index/Axis Mask 固定都是0" -> Disable inputs.
+    let isSensor = realType.startsWith('0x5');
+    if (chInput) {
+        chInput.disabled = isSensor;
+        if (isSensor) chInput.value = 0;
+    }
+
+    // Axes for Accel (0x5_4 Only)
+    let axes = ['axisX', 'axisY', 'axisZ'];
+    if (realType === '0x5_4') {
+        axes.forEach(id => {
+            let el = document.getElementById(id);
+            if (el) {
+                el.disabled = false; // Enabled per user feedback
+                // Don't auto-uncheck, keep user state or default
+            }
+        });
+    } else {
+        // Re-enable if switching away? Or just default logic handles visibility?
+        let axes = ['axisX', 'axisY', 'axisZ'];
+        axes.forEach(id => {
+            let el = document.getElementById(id);
+            if (el) {
+                el.disabled = false;
+            }
+        });
+    }
+}
+
+function updateGenParams() {
+    let type = document.getElementById('genCmd').getAttribute('data-real-type');
+    let cmdKey = document.getElementById('genCmd').value;
+    let div = document.getElementById('genParamArea');
+    div.innerHTML = "";
+
+    if (!type || !cmdKey) return;
+
+    let conf = DownlinkGenerator.DEFS[type][cmdKey];
+    if (!conf) return;
+
+    if (conf.type === 'bitmask') {
+        div.innerHTML = `<label class="text-secondary small mb-2">${conf.desc}</label><div class="grid-selector">` +
+            conf.options.map(o => `
+                <input type="checkbox" id="bm_${o.b}" class="feature-check" value="${o.b}" name="bitmask_opt">
+                <label for="bm_${o.b}" class="feature-label"><i class="fa-solid fa-check me-2"></i>${o.l}</label>
+            `).join('') + `</div>`;
+        return;
+    }
+
+    if (conf.type === 'schedule') {
+        div.innerHTML = `<div class="mb-2"><select id="schMode" class="form-select"><option value="0">Basic</option><option value="1">Advance</option></select></div>
+        <div class="mb-2"><div class="weekday-selector">${['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => `<input type="checkbox" id="d${i}" class="weekday-check"><label for="d${i}" class="weekday-label">${d}</label>`).join('')}</div></div>
+        <div class="row g-2 mb-2"><div class="col-6"><input type="time" id="schStart" class="form-control" value="09:00"></div><div class="col-6"><input type="time" id="schEnd" class="form-control" value="18:00"></div></div>
+        <div class="mb-2"><input type="number" id="schInt" class="form-control" placeholder="Interval (sec)" value="600"></div>`;
+        return;
+    }
+
+    if (conf.type === 'composite') {
+        let html = `<label class="text-accent mb-2 small">Parameters:</label>`;
+        conf.parts.forEach(p => {
+            html += `<div class="mb-2"><label class="text-secondary small">${p.label}</label>`;
+            if (p.type === 'datetime') html += `<input type="datetime-local" id="comp_${p.id}" class="form-control form-control-sm">`;
+            else {
+                html += `<input type="text" id="comp_${p.id}" class="form-control" placeholder="Val">`;
+            }
+            html += `</div>`;
+        });
+        div.innerHTML = html;
+        initDates();
+        // Add event listeners for validation (basic)
+        div.querySelectorAll('input').forEach(el => {
+            el.addEventListener('input', () => validateInput(el));
+        });
+        return;
+    }
+
+    let html = `<label class="text-secondary mb-1">${conf.name}</label>`;
+    if (conf.type === 'fixed_hex') html += `<input class="form-control" disabled value="${conf.hex}">`;
+    else if (conf.type === 'fixed') html += `<input class="form-control" disabled value="Empty Payload">`;
+    else if (conf.type === 'select') {
+        html += `<select id="genVal" class="form-select">`;
+        for (let k in conf.opts) html += `<option value="${k}">${conf.opts[k]}</option>`;
+        html += `</select>`;
+    } else if (conf.type === 'string') {
+        html += `<input type="text" class="form-control" id="genVal" placeholder="${conf.desc || ''}">`;
+    } else if (conf.type === 'float') {
+        html += `<div class="div-group">
+            <div class="input-group">
+                <input type="number" step="0.01" class="form-control" id="genVal" placeholder="Value" data-max="${conf.max || ''}">
+                <span class="input-group-text">x${conf.scale}</span>
+            </div>
+            <div class="form-text text-danger d-none" id="valWarning">Value exceeds limit!</div>
+        </div>`;
+    } else if (conf.type === 'number') {
+        let ph = conf.desc ? `e.g. ${conf.desc.split('e.g. ')[1] || 'Value'}` : 'Value';
+        html += `<div class="div-group">
+            <div class="input-group">
+                <select class="input-group-text fmt-select" id="fmt_genVal" onchange="validateInput(document.getElementById('genVal'))">
+                    <option value="dec">DEC</option>
+                    <option value="hex">HEX</option>
+                </select>
+                <input type="text" class="form-control" id="genVal" placeholder="${ph}" data-max="${conf.max || ''}">
+                ${conf.unit ? `<span class="input-group-text">${conf.unit}</span>` : ''}
+            </div>
+            <div class="form-text text-danger d-none" id="valWarning">Value exceeds limit!</div>
+        </div>`;
+    } else if (conf.type === 'datetime') {
+        html += `<input type="datetime-local" class="form-control" id="genVal">`;
+    }
+
+    if (conf.desc) html += `<div class="text-muted small mt-2"><i class="fa-solid fa-circle-info me-1"></i>${conf.desc}</div>`;
+    div.innerHTML = html;
+    if (conf.type === 'datetime') initDates();
+
+    // Add validation listener for main input
+    let mainInput = document.getElementById('genVal');
+    if (mainInput && (conf.type === 'number' || conf.type === 'float')) {
+        mainInput.addEventListener('input', () => validateInput(mainInput));
+    }
+}
+
+function validateInput(el) {
+    let max = parseFloat(el.getAttribute('data-max'));
+    if (isNaN(max)) return;
+
+    let valStr = el.value.trim();
+    if (!valStr) {
+        setWarning(el, false);
+        return;
+    }
+
+    let val = 0;
+    // Check format if exists
+    let grp = el.closest('.div-group'); // Using div-group as container now
+    let fmtSel = grp ? grp.querySelector('.fmt-select') : null;
+    let isHex = fmtSel && fmtSel.value === 'hex';
+
+    if (isHex) {
+        // Strip 0x if present
+        valStr = valStr.replace(/^0x/i, '');
+        // Validate hex string
+        if (/[^0-9A-Fa-f]/.test(valStr)) {
+            // Invalid Hex
+            // Can imply warning or just ignore. 
+        }
+        val = parseInt(valStr, 16);
+    } else {
+        val = parseFloat(valStr);
+    }
+
+    if (val > max) {
+        setWarning(el, true, `Max: ${markedMax(max, isHex)}`);
+    } else {
+        setWarning(el, false);
+    }
+}
+
+function markedMax(max, isHex) {
+    if (isHex) return "0x" + max.toString(16).toUpperCase();
+    return max;
+}
+
+function setWarning(el, show, msg) {
+    let parent = el.closest('.div-group') || el.parentElement.parentElement;
+    let warn = parent.querySelector('#valWarning');
+    if (!warn) return;
+
+    if (show) {
+        warn.classList.remove('d-none');
+        warn.innerText = msg || "Value exceeds limit!";
+    } else {
+        warn.classList.add('d-none');
+    }
+}
+
+function parseInputVal(el) {
+    if (!el) return 0;
+    let valStr = el.value.trim();
+    let grp = el.closest('.div-group');
+    let fmtSel = grp ? grp.querySelector('.fmt-select') : null;
+
+    if (fmtSel && fmtSel.value === 'hex') {
+        return parseInt(valStr.replace(/^0x/i, ''), 16);
+    }
+    return parseFloat(valStr);
+}
+
+function runGenerator() {
+    try {
+        let type = document.getElementById('genType').value;
+        let realType = document.getElementById('genCmd').getAttribute('data-real-type');
+        let cmdKey = document.getElementById('genCmd').value;
+        let conf = DownlinkGenerator.DEFS[realType][cmdKey];
+
+        // Gather Params
+        let params = {
+            type: realType,
+            cmdKey: cmdKey,
+            ch: document.getElementById('genCh').value,
+            range: document.getElementById('sensorRange').value,
+            port: document.getElementById('genPort').value,
+            ch485: document.getElementById('genCh485').value,
+            seq: document.getElementById('genSeq').value,
+            data: {}
+        };
+
+        // Specific Data Gathering
+        if (conf.type === 'schedule') {
+            params.data.schMode = document.getElementById('schMode').value;
+            let mask = 0;
+            for (let i = 0; i < 7; i++) if (document.getElementById('d' + i).checked) mask |= (1 << i);
+            params.data.schMask = mask;
+            let s = document.getElementById('schStart').value.split(':');
+            let e = document.getElementById('schEnd').value.split(':');
+            params.data.schStartH = s[0]; params.data.schStartM = s[1];
+            params.data.schEndH = e[0]; params.data.schEndM = e[1];
+            params.data.schInt = document.getElementById('schInt').value;
+        }
+        else if (conf.type === 'bitmask') {
+            let mask = 0;
+            conf.options.forEach(o => {
+                let el = document.getElementById('bm_' + o.b);
+                if (el && el.checked) mask |= (1 << o.b);
+            });
+            params.data.bitmask = mask;
+        }
+        else if (conf.type === 'composite') {
+            conf.parts.forEach(p => {
+                let el = document.getElementById('comp_' + p.id);
+                let val = el.value;
+                if (p.type === 'datetime') val = Math.floor(new Date(val).getTime() / 1000);
+
+                params.data[p.id] = val;
+            });
+        }
+        else if (conf.type !== 'fixed' && conf.type !== 'fixed_hex') {
+            let el = document.getElementById('genVal');
+            let val = el.value;
+
+            if (conf.type === 'datetime') params.data.val = Math.floor(new Date(val).getTime() / 1000);
+            else if (conf.type === 'float') params.data.val = Math.round(parseFloat(val) * conf.scale);
+            else {
+                // Number with Hex support
+                params.data.val = parseInputVal(el);
+            }
+        }
+
+        // Accel Axis
+        if (realType === '0x5_4') {
+            params.data.axisX = document.getElementById('axisX').checked;
+            params.data.axisY = document.getElementById('axisY').checked;
+            params.data.axisZ = document.getElementById('axisZ').checked;
+        }
+
+        let result = DownlinkGenerator.generate(params);
+        // Handle new structured return
+        let hex = result.hex || result;
+
+        document.getElementById('genOutput').innerText = hex;
+        document.getElementById('genBreakdown').innerText = hex.match(/.{1,2}/g).join(' ');
+
+        if (result.parts) {
+            let p = result.parts;
+            let html = ``;
+            // "Header: 80 0 8" (Merged WHDR, Seq, Len)
+            let h1 = p.whdr;
+            let h2 = parseInt(p.seq, 16).toString(16).toUpperCase();
+            let h3 = parseInt(p.len, 16).toString(16).toUpperCase();
+            html += `<span class="struct-badge sb-header" title="Header (WHDR Seq Len)">Header: ${h1} ${h2} ${h3}</span>`;
+
+            // Type|Rng: 0x50
+            if (p.typeRange) {
+                let v = parseInt(p.typeRange, 16).toString(16).toUpperCase();
+                html += `<span class="struct-badge sb-type" title="Type | Range">Type|Rng: 0x${v}</span>`;
+            }
+
+            // Mask: 0x0
+            if (p.mask) {
+                let v = parseInt(p.mask, 16).toString(16).toUpperCase();
+                html += `<span class="struct-badge sb-mask" title="Mask/Ch">Mask: 0x${v}</span>`;
+            }
+
+            // Len: 5 (Segment Len)
+            if (p.segLen) {
+                let v = parseInt(p.segLen, 16).toString(16).toUpperCase();
+                html += `<span class="struct-badge sb-len" title="Seg Len">Len: ${v}</span>`;
+            }
+
+            // Cmd: 5
+            if (p.cmdId) {
+                let v = parseInt(p.cmdId, 16).toString(16).toUpperCase();
+                html += `<span class="struct-badge sb-cmd" title="Cmd ID">Cmd: ${v}</span>`;
+            }
+
+            // Data [length]
+            if (p.data && p.data.length > 0) {
+                let byteCount = p.data.length / 2;
+                html += `<span class="struct-badge sb-data" title="Payload Data">Data [${byteCount}]</span>`;
+            }
+
+            // CRC: cc
+            if (p.crc) {
+                html += `<span class="struct-badge sb-crc" title="CRC">CRC: ${p.crc}</span>`;
+            }
+
+            document.getElementById('genStructure').innerHTML = html;
+        } else {
+            // Fallback
+            document.getElementById('genStructure').innerHTML = `<span class="struct-badge sb-header">Header: 0x80..</span> <span class="struct-badge sb-len">Len: ${hex.length / 2}</span> <span class="struct-badge sb-crc">CRC Valid</span>`;
+        }
+
+    } catch (e) {
+        document.getElementById('genOutput').innerText = "Error: " + e;
+        console.error(e);
+    }
+}
+
+// Helpers
+function switchTab(t) {
+    document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active'));
+    document.getElementById('nav-' + t).classList.add('active');
+    document.getElementById('view-uplink').style.display = t === 'uplink' ? 'block' : 'none';
+    document.getElementById('view-downlink').style.display = t === 'downlink' ? 'block' : 'none';
+    document.getElementById('view-mac').style.display = t === 'mac' ? 'block' : 'none';
+
+    if (t === 'downlink') updateGenCommands();
+    if (t === 'mac') updateMacCommands();
+}
+
+function showToast(message) {
+    let container = document.getElementById('toast-container');
+    if (!container) return; // Should exist
+
+    let el = document.createElement('div');
+    el.className = 'custom-toast';
+    el.innerHTML = `<i class="fa-solid fa-check-circle me-2"></i> ${message}`;
+
+    container.appendChild(el);
+
+    // Remove after animation (2.5s)
+    setTimeout(() => {
+        el.remove();
+    }, 2500);
+}
+
+function copyText(id) {
+    let text = document.getElementById(id).innerText;
+    navigator.clipboard.writeText(text).then(() => {
+        showToast("Copied to clipboard!");
+    }).catch(err => {
+        console.error('Failed to copy: ', err);
+        showToast("Failed to copy!");
+    });
+}
+
+async function pasteText(id) {
+    try {
+        const text = await navigator.clipboard.readText();
+        document.getElementById(id).value = text;
+        showToast("Pasted from clipboard!");
+    } catch (err) {
+        console.error('Failed to paste: ', err);
+        showToast("Failed to paste! (Allow access?)");
+    }
+}
+
+function initDates() {
+    setTimeout(() => {
+        document.querySelectorAll('input[type="datetime-local"]').forEach(el => {
+            if (!el.value) {
+                let now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+                el.value = now.toISOString().slice(0, 16);
+            }
+        })
+    }, 0);
+}
+
+// Events
+document.getElementById('genType').addEventListener('change', updateGenCommands);
+document.getElementById('sensorRange').addEventListener('change', updateGenCommands);
+document.getElementById('genCmd').addEventListener('change', updateGenParams);
+updateGenCommands(); // Init
+
+// --- Decoder Logic ---
+function toggleDlMode() {
+    let mode = document.querySelector('input[name="dlMode"]:checked').id;
+    let isGen = (mode === 'modeGen');
+
+    // Toggle Inputs
+    document.getElementById('dl-generator-view').style.display = isGen ? 'block' : 'none';
+    document.getElementById('dl-decoder-view').style.display = isGen ? 'none' : 'block';
+
+    // Toggle Outputs
+    document.getElementById('dl-gen-output-area').style.display = isGen ? 'block' : 'none';
+    document.getElementById('dl-dec-output-area').style.display = isGen ? 'none' : 'block';
+}
+
+function runDecoder() {
+    let hex = document.getElementById('decHexInput').value.trim();
+    if (!hex) return;
+
+    // Call Decoder
+    let res = DownlinkDecoder.decode(hex);
+
+    let out = document.getElementById('decResult');
+    if (res.error) {
+        out.innerHTML = `<div class="alert alert-danger mb-0"><i class="fa-solid fa-triangle-exclamation me-2"></i>${res.error}</div>`;
+        return;
+    }
+
+    // Render Success
+    let html = `
+    <div class="mb-3">
+        <div class="d-flex align-items-center mb-2">
+            <span class="badge bg-success me-2">Success</span>
+            <span class="fw-bold text-accent">${res.cmdName}</span>
+        </div>
+        <div class="small text-secondary mb-1">
+            <span class="me-3"><i class="fa-solid fa-list me-1"></i>Type: ${res.header.type}</span>
+            <span class="me-3"><i class="fa-solid fa-arrow-down-1-9 me-1"></i>Seq: ${res.header.seq}</span>
+            <span><i class="fa-solid fa-ruler-horizontal me-1"></i>Len: ${res.header.len}</span>
+        </div>
+    </div>
+    
+    <div class="struct-breakdown mb-3">
+        <label class="text-secondary small mb-2">Parameters</label>
+        <div class="table-responsive">
+            <table class="table table-dark table-sm table-borderless mb-0">
+                <tbody>`;
+
+    for (let k in res.params) {
+        if (k.startsWith('_')) continue; // Skip internal meta
+        let val = res.params[k];
+        html += `
+                <tr>
+                    <td class="text-secondary" style="width: 40%;">${k}</td>
+                    <td class="font-monospace text-light">${val}</td>
+                </tr>`;
+    }
+
+    html += `   </tbody>
+            </table>
+        </div>
+    </div>`;
+
+    if (res.params._target) {
+        html += `<div class="alert alert-dark small mb-0"><i class="fa-solid fa-crosshairs me-2"></i>Target: ${res.params._target}</div>`;
+    }
+
+    out.innerHTML = html;
+}
+
+function clearDecoder() {
+    document.getElementById('decHexInput').value = '';
+    document.getElementById('decResult').innerHTML = '<pre class="h-100 border-0 rounded-0 m-0 bg-transparent p-0 text-light font-monospace">Enter Hex string and click Decode...</pre>';
+}
+
+function clearParser() {
+    document.getElementById('upHexInput').value = '';
+    let upOut = document.getElementById('upOutput');
+    upOut.innerHTML = 'Enter Hex string and click Parse...';
+    upOut.className = 'h-100 border-0 rounded-0 m-0 bg-transparent p-3 text-light font-monospace';
+}
+
+
+// --- MAC Analysis Logic ---
+
+
+
+function toggleMacMode() {
+    let mode = document.querySelector('input[name="macMode"]:checked').id;
+    let isGen = (mode === 'macModeGen');
+
+    document.getElementById('mac-gen-view').style.display = isGen ? 'block' : 'none';
+    document.getElementById('mac-dec-view').style.display = isGen ? 'none' : 'block';
+
+    document.getElementById('mac-gen-output-area').style.display = isGen ? 'block' : 'none';
+    document.getElementById('mac-dec-output-area').style.display = isGen ? 'none' : 'block';
+}
+
+function updateMacCommands() {
+    let dir = document.getElementById('macGenDir').value; // 'up' or 'down'
+    let isUplink = (dir === 'up');
+    let select = document.getElementById('macGenCmd');
+    select.innerHTML = '';
+
+    Object.keys(MacCmd.DEFS).forEach(cid => {
+        let def = MacCmd.DEFS[cid];
+        let opt = document.createElement('option');
+        opt.value = cid;
+        opt.innerText = `${cid} - ${def.name}`;
+        select.appendChild(opt);
+    });
+
+    updateMacParams();
+}
+
+function updateMacParams() {
+    let cid = document.getElementById('macGenCmd').value;
+    let dir = document.getElementById('macGenDir').value;
+    let isUplink = (dir === 'up');
+    let container = document.getElementById('macGenParamArea');
+    container.innerHTML = '';
+
+    let html = '';
+
+    if (isUplink) {
+        // --- UPLINK (ANSTERS) ---
+        if (cid === '0x02') { // LinkCheckAns -> Error: LinkCheckReq(Up) has NO payload.
+            html = '<div class="text-secondary small">No parameters for LinkCheckReq (Uplink).</div>';
+        }
+        else if (cid === '0x03' || cid === '0x05' || cid === '0x0A') { // Status (LinkADR, RXParam, DlCh)
+            html += createCheck('ack1', 'Power ACK');
+            html += createCheck('ack2', 'Data Rate ACK');
+            html += createCheck('ack3', 'Channel Mask/Freq ACK');
+        }
+        else if (cid === '0x07') { // NewChannelAns
+            html += createCheck('ack1', 'Channel Frequency ACK');
+            html += createCheck('ack2', 'Data Rate Range ACK');
+        }
+        else if (cid === '0x06') { // DevStatusAns
+            html += createNumInput('battery', 'Battery (0=Ext, 255=Unk)', 0, 255, 255);
+            html += createNumInput('margin', 'SNR Margin (-32..31)', -32, 31, 0);
+        }
+        else if (cid === '0x0D') { // DeviceTimeReq
+            html = '<div class="text-secondary small">No parameters for DeviceTimeReq (Uplink).</div>';
+        }
+    } else {
+        // --- DOWNLINK (REQUESTS) ---
+        if (cid === '0x02') { // LinkCheckAns
+            html += createNumInput('margin', 'Margin (dB)', 0, 255, 10);
+            html += createNumInput('gwCnt', 'Gateway Count', 0, 255, 1);
+        }
+        else if (cid === '0x03') { // LinkADRReq
+            html += createNumInput('dr', 'Data Rate (0-15)', 0, 15, 0);
+            html += createNumInput('txPower', 'TX Power (0-15)', 0, 15, 0);
+
+            // ChMaskCntl Select
+            html += `<div class="mb-2">
+                <label class="form-label small">ChMaskCntl (Region Control)</label>
+                <select class="form-select form-select-sm" id="mac_chMaskCntl">
+                    <option value="0">0: Ch 0-15 (EU868/US915)</option>
+                    <option value="1">1: Ch 16-31 (US915/CN470)</option>
+                    <option value="2">2: Ch 32-47</option>
+                    <option value="3">3: Ch 48-63</option>
+                    <option value="4">4: Ch 64-79</option>
+                    <option value="5">5: Ch 80-95</option>
+                    <option value="6">6: All Channels ON</option>
+                    <option value="7">7: RFU</option>
+                </select>
+            </div>`;
+
+            // ChMask UI
+            html += `<div class="mb-2">
+                <label class="form-label small">Channel Mask (16-bit)</label>
+                <input type="text" class="form-control form-control-sm mb-2 font-monospace" id="mac_chMask" value="0000" onkeyup="syncChMask(this.value)">
+                <div class="d-flex flex-wrap gap-1 p-2 border border-secondary rounded bg-darker">
+                    ${[...Array(16)].map((_, i) => `
+                        <div class="form-check form-check-inline m-0 me-1" style="width: 2.5rem;">
+                            <input class="form-check-input" type="checkbox" id="ch_mask_${i}" onchange="updateChMaskHex()" style="transform: scale(0.8);">
+                            <label class="form-check-label" style="font-size: 0.7rem;" for="ch_mask_${i}">${i}</label>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>`;
+
+            html += createNumInput('nbTrans', 'NbTrans (0-15)', 0, 15, 1);
+        }
+        else if (cid === '0x04') { // DutyCycleReq
+            html += createNumInput('maxDC', 'MaxDC (0-15)', 0, 15, 0);
+        }
+        else if (cid === '0x05') { // RXParamSetupReq
+            html += createNumInput('rx1DrOff', 'RX1 DR Offset (0-7)', 0, 7, 0);
+            html += createNumInput('rx2DataRate', 'RX2 Data Rate (0-15)', 0, 15, 0);
+            html += createNumInput('freq', 'Frequency (KHz)', 0, 1677721, 868100);
+        }
+        else if (cid === '0x07') { // NewChannelReq
+            html += createNumInput('chIndex', 'Channel Index', 0, 255, 3);
+            html += createNumInput('freq', 'Frequency (KHz)', 0, 1677721, 868100);
+            html += createNumInput('minDr', 'Min Data Rate (0-15)', 0, 15, 0);
+            html += createNumInput('maxDr', 'Max Data Rate (0-15)', 0, 15, 5);
+        }
+        else if (cid === '0x08') { // RXTimingSetupReq
+            html += createNumInput('delay', 'Delay (1-15 sec)', 0, 15, 1);
+        }
+        else if (cid === '0x09') { // TXParamSetupReq
+            html += createCheck('dlDwell', 'DownlinkDwell');
+            html += createCheck('ulDwell', 'UplinkDwell');
+            html += createNumInput('maxEirp', 'MaxEIRP (0-15)', 0, 15, 0);
+        }
+        else if (cid === '0x0A') { // DlChannelReq
+            html += createNumInput('chIndex', 'Channel Index', 0, 255, 3);
+            html += createNumInput('freq', 'Frequency (KHz)', 0, 1677721, 868100);
+        }
+        else if (cid === '0x0D') { // DeviceTimeAns
+            html += createNumInput('seconds', 'GPS Seconds', 0, 4294967295, 0);
+            html += createNumInput('frac', 'Fraction (1/256)', 0, 255, 0);
+        }
+    }
+
+    container.innerHTML = html;
+}
+
+function createNumInput(id, label, min, max, def, isHex = false) {
+    return `<div class="mb-2">
+        <label class="form-label small">${label}</label>
+        <input type="${isHex ? 'text' : 'number'}" class="form-control form-control-sm" id="mac_${id}" value="${def}" 
+        ${isHex ? 'placeholder="0xFFFF"' : `min="${min}" max="${max}"`}>
+    </div>`;
+}
+
+function createCheck(id, label) {
+    return `<div class="form-check">
+        <input class="form-check-input" type="checkbox" id="mac_${id}">
+        <label class="form-check-label small" for="mac_${id}">${label}</label>
+    </div>`;
+}
+
+
+function runMacGenerator() {
+    let cid = document.getElementById('macGenCmd').value;
+    let dir = document.getElementById('macGenDir').value;
+    let isUplink = (dir === 'up');
+
+    let params = {};
+    let inputs = document.getElementById('macGenParamArea').querySelectorAll('input, select');
+    inputs.forEach(input => {
+        // Skip internal helpers (like checkbox grid items) if they don't look like params
+        // My implementation mostly named them mac_{paramName}.
+        // The checkboxes are named ch_mask_{i}, which don't start with mac_.
+        if (!input.id.startsWith('mac_')) return;
+
+        let key = input.id.replace('mac_', '');
+
+        if (input.tagName === 'SELECT') {
+            params[key] = parseInt(input.value);
+        }
+        else if (input.type === 'checkbox') {
+            params[key] = input.checked;
+        }
+        else {
+            if (input.type === 'text') params[key] = parseInt(input.value, 16);
+            else {
+                let val = parseInt(input.value);
+                if (key === 'freq') val = val * 10; // KHz -> Hz/100
+                params[key] = val;
+            }
+        }
+    });
+
+    let hex = MacCmd.generate(cid, isUplink, params);
+    if (hex.error) {
+        document.getElementById('macGenOutput').innerText = "Error: " + hex.error;
+    } else {
+        document.getElementById('macGenOutput').innerText = hex;
+    }
+}
+
+function runMacDecoder() {
+    let hex = document.getElementById('macDecInput').value;
+    let dir = document.getElementById('macDecDir').value;
+    // let isUplink = (dir === 'up'); // Fixed context?
+    let isUplink = (dir === 'up');
+
+    let res = MacCmd.decode(hex, isUplink);
+
+    let html = '';
+    if (res.error) {
+        html += `<div class="alert alert-danger p-2 mb-2"><i class="fa-solid fa-triangle-exclamation"></i> ${res.error}</div>`;
+    }
+
+    if (res.commands.length === 0 && !res.error) {
+        html += `<div class="text-secondary">No commands found.</div>`;
+    }
+
+    res.commands.forEach(cmd => {
+        html += `<div class="mb-3 border-bottom border-secondary pb-3 px-1">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <strong class="text-accent">${cmd.name}</strong>
+                <span class="badge bg-secondary">${cmd.cid}</span>
+            </div>
+            <div class="small font-monospace text-muted mb-2">Raw: ${MacCmd.toHex(0, 0)} ${cmd.raw.map(b => b.toString(16).toUpperCase().padStart(2, '0')).join(' ')}</div>
+            <div class="mt-2">`;
+
+        if (Object.keys(cmd.params).length > 0) {
+            html += `<div class="table-responsive">
+                <table class="table table-dark table-sm table-borderless small mb-0">`;
+            for (let k in cmd.params) {
+                html += `<tr><td class="text-secondary" style="width: 40%;">${k}</td><td class="font-monospace text-light">${cmd.params[k]}</td></tr>`;
+            }
+            html += `</table></div>`;
+        } else html += `<span class="text-secondary small">Empty</span>`;
+
+        html += `</div></div>`;
+    });
+
+    document.getElementById('macDecResult').innerHTML = html;
+}
+
+function clearMacDecoder() {
+    document.getElementById('macDecInput').value = '';
+    document.getElementById('macDecResult').innerHTML = '<pre class="h-100 border-0 rounded-0 m-0 bg-transparent p-0 text-light font-monospace">Enter Hex string and click Decode...</pre>';
+}
+
+function updateChMaskHex() {
+    let mask = 0;
+    for (let i = 0; i < 16; i++) {
+        let cb = document.getElementById(`ch_mask_${i}`);
+        if (cb && cb.checked) {
+            mask |= (1 << i);
+        }
+    }
+    document.getElementById('mac_chMask').value = mask.toString(16).toUpperCase().padStart(4, '0');
+}
+
+function syncChMask(hex) {
+    let mask = parseInt(hex, 16);
+    if (isNaN(mask)) return;
+    for (let i = 0; i < 16; i++) {
+        let cb = document.getElementById(`ch_mask_${i}`);
+        if (cb) {
+            cb.checked = !!(mask & (1 << i));
+        }
+    }
+}
+
+
+</script>
+
+</body>
+
+</html>

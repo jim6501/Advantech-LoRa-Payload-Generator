@@ -1,4 +1,4 @@
-# Advantech LoRa Payload Formatter v0.71
+# Advantech LoRa Payload Formatter v0.8
 
 A web-based tool for manipulating Advantech LoRaWAN payloads. This application provides three main functions:
 1.  **Uplink Parser**: Decodes raw hexadecimal uplink payloads into human-readable JSON.
@@ -36,9 +36,19 @@ A web-based tool for manipulating Advantech LoRaWAN payloads. This application p
 3.  **Downlink Analysis**: Use **Generator** to create commands or **Decoder** to read them.
 4.  **MAC Analysis**: Generate or Decode LoRaWAN MAC commands (LinkADR, DutyCycle, etc.) with the dedicated tool.
 
+## Portable Version
+
+You can create a standalone, portable HTML file (no external local dependencies) using the build script:
+```bash
+node build.js
+```
+This will generate `portable/Advantech_LoRa_Payload_Formatter_Portable.html`.
+
 ## File Structure
 
 -   `index.html`: Main application entry point.
+-   `build.js`: Script to bundle app into a portable HTML file.
+-   `portable/`: Directory containing the generated portable file.
 -   `css/style.css`: Custom dark-mode styling and layout.
 -   `js/main.js`: Core application logic, event handling, and UI rendering.
 -   `js/generator.js`: Downlink logic, command definitions, and checksum calculation.
@@ -46,7 +56,13 @@ A web-based tool for manipulating Advantech LoRaWAN payloads. This application p
 -   `js/mac_cmd.js`: MAC Command definitions, generation, and parsing logic.
 -   `js/parser.js`: Official uplink parsing logic (Vendor supplied).
 
-## Recent Updates (v0.71)
+## Recent Updates (v0.8)
+
+-   **[Feature]** **Portable Build**:
+    -   Added `build.js` to bundle all CSS and JS resources into a single HTML file.
+    -   Portable file is saved to `portable/Advantech_LoRa_Payload_Formatter_Portable.html`.
+
+## Previous Updates (v0.71)
 
 -   **[UI]** **Standardized Output UI**:
     -   Unified "Output Result" styling across Uplink Parser, Downlink Decoder, and MAC Decoder.
