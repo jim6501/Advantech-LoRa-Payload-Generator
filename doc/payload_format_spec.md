@@ -238,14 +238,14 @@
 | :--- | :--- | :--- | :--- |
 | **1** | 1 | Clear Vel. RMS Alarm | 寫入 `0` |
 | **5** | 4 | Set Vel. RMS Limit | 單位 0.01 mm/s (UInt32) |
-| **9** | 4 | Get Log Massive Data | Log Index (0xFFFFFFFF = Latest) |
-| **10** | 8 | Read N Bytes from Log | `Log Index(4)` + `N(2)` + `K(2)` |
-| **11** | 8 | Get Log at UTC | `Log Index(4)` + `UTC Time(4)` |
-| **12** | 2 | Enable Feature Data | Bit 4: Displacement (1=Enable) Bit 3: Standard Deviation (1=Enable) Bit 2: Skewness (1=Enable) Bit 1: Crest 
-Factor (1=Enable) Bit 0: Kurtosis (1=Enable) |
-| **14** | 0 | Reserved | 無參數 (Specific triggering command) |
-| **15** | 5 | Get Feature Data | `Log Index(4)` + `Send Temp(1)` |
-| **16** | 0 | Reserved | 無參數 |
+| **9** | 4 | Get FFT Data | Log Index (0xFFFFFFFF = Latest) |
+| **10** | 8 | Read N Bytes from Log | `Log Index(4)` + `N(2)` + `K(2)` <br> (Read the n bytes starting from the Kth byte position of log data with a specific log index) |
+| **11** | 8 | Get FFT Data at Specific Time | `Log Index(4)` + `UTC Time(4)` |
+| **12** | 2 | Enable / Disable Feature Data | Bit 4: Displacement (1=Enable) Bit 3: Standard Deviation (1=Enable) Bit 2: Skewness (1=Enable) Bit 1: CrestFactor (1=Enable) Bit 0: Kurtosis (1=Enable) |
+| **14** | 0 | Clear all log massive data query commands stored in device | 無參數 (Specific triggering command) |
+| **15** | 16 | Get indexed frequency FFT data at specific Time | `Log Index(4)` + `UTC Time(4)` + `Freq Start(4)` + `Freq End(4)` <br> (Get the log massive data with a specific log index number and specific frequency range at specific UTC time. Frequency unit: Hz)<br>Note: IF UTC time is 0 or less than current time of module, module will upload FFT data immediately. |
+| **16** | 5 | Get Feature Data | `Log Index(4)` + `Send Temp(1)` <br> (Get the feature data with a specific log index number) Send Temp: 0=Without, 1=With |
+| **17** | 0 | Reserved | 無參數 |
 
 ## 5. Device Configuration (Type 0x6)
 **Header:** `0x6` (Type) + `Config Type`

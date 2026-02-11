@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advantech LoRaWAN Payload Formatter v0.8</title>
+    <title>Advantech LoRaWAN Payload Formatter v0.81</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link
@@ -368,7 +368,7 @@ pre,
             </div>
             <div class="d-flex justify-content-end mt-2">
                 <span class="badge bg-dark border border-secondary text-secondary rounded-pill"
-                    style="font-size: 0.6em; padding: 0.3em 0.8em;">v0.8</span>
+                    style="font-size: 0.6em; padding: 0.3em 0.8em;">v0.81</span>
             </div>
         </div>
         <div class="nav-item active" onclick="switchTab('uplink')" id="nav-uplink">
@@ -507,6 +507,7 @@ pre,
                                 <div class="mb-3">
                                     <label class="text-secondary mb-2">2. Command</label>
                                     <select class="form-select" id="genCmd"></select>
+                                    <div class="form-text small text-info mt-1" id="cmdDesc"></div>
                                 </div>
 
                                 <div id="genParamArea" class="mb-4"></div>
@@ -1927,12 +1928,33 @@ const DownlinkGenerator = {
         "0x5_4": { // Sensor (Accel)
             "1": { name: "Clear Vel. RMS Alarm", type: "fixed", val: 0, len: 1, cmdId: 1 },
             "5": { name: "Set Vel. RMS Limit", type: "float", scale: 100, len: 4, desc: "Value * 100 (Unit: 0.01 mm/s)", cmdId: 5, max: 42949672.95 },
-            "9": { name: "Get Log (Massive Data)", type: "number", len: 4, desc: "Log Index (0xFFFFFFFF = Latest)", cmdId: 9 },
-            "10": { name: "Read Log Part", type: "composite", parts: [{ id: "idx", type: "number", len: 4, label: "Idx" }, { id: "n", type: "number", len: 2, label: "N (Bytes)" }, { id: "k", type: "number", len: 2, label: "K" }], cmdId: 10 },
-            "11": { name: "Get Log (UTC)", type: "composite", parts: [{ id: "idx", type: "number", len: 4, label: "Idx" }, { id: "utc", type: "datetime", len: 4, label: "UTC" }], cmdId: 11 },
+            "9": { name: "Get FFT Data", type: "number", len: 4, desc: "Log Index (0xFFFFFFFF = Latest)", cmdId: 9, max: 4294967295 },
+            "10": { name: "Read N Bytes from Log", type: "composite", parts: [{ id: "idx", type: "number", len: 4, label: "Log Index", max: 4294967295, desc: "Log Index (0xFFFFFFFF = Latest)" }, { id: "n", type: "number", len: 2, label: "N (Bytes)", max: 65535 }, { id: "k", type: "number", len: 2, label: "K", max: 65535 }], cmdId: 10, desc: "Read the n bytes starting from the Kth byte position of log data with a specific log index" },
+            "11": { name: "Get FFT Data at Specific Time", type: "composite", parts: [{ id: "idx", type: "number", len: 4, label: "Log Index", max: 4294967295, desc: "Log Index (0xFFFFFFFF = Latest)" }, { id: "utc", type: "datetime", len: 4, label: "UTC" }], cmdId: 11 },
             "12": { name: "Enable Features", type: "bitmask", len: 2, options: [{ b: 4, l: "Displacement" }, { b: 3, l: "Standard Deviation" }, { b: 2, l: "Skewness" }, { b: 1, l: "Crest Factor" }, { b: 0, l: "Kurtosis" }], desc: "Enable specific features (Bit 4-0)", cmdId: 12, max: 65535 },
-            "14": { name: "Trigger Spec Cmd", type: "fixed", val: 0, len: 0, cmdId: 14 },
-            "15": { name: "Get Feature Data", type: "composite", parts: [{ id: "idx", type: "number", len: 4, label: "Idx" }, { id: "tmp", type: "number", len: 1, label: "Send Temp (1=Yes)" }], cmdId: 15 }
+            "14": { name: "Clear Log Query Cmds", type: "fixed", val: 0, len: 0, cmdId: 14, desc: "Clear all log massive data query commands stored in device" },
+            "15": {
+                name: "Get indexed frequency FFT data at specific Time",
+                type: "composite",
+                parts: [
+                    { id: "idx", type: "number", len: 4, label: "Log Index", max: 4294967295 },
+                    { id: "utc", type: "datetime", len: 4, label: "UTC Time" },
+                    { id: "freqStart", type: "number", len: 4, label: "Freq Start (Hz)", max: 4294967295 },
+                    { id: "freqEnd", type: "number", len: 4, label: "Freq End (Hz)", max: 4294967295 }
+                ],
+                cmdId: 15,
+                desc: "Get the log massive data with a specific log index number and specific frequency range at specific UTC time.\nNote: IF UTC time is 0 or less than current time of module, module will upload FFT data immediately."
+            },
+            "16": {
+                name: "Get Feature Data",
+                type: "composite",
+                parts: [
+                    { id: "idx", type: "number", len: 4, label: "Log Index", max: 4294967295, desc: "0xFFFFFFFF = Latest" },
+                    { id: "tmp", type: "select", len: 1, label: "Send Temp", opts: { 0: "Without", 1: "With" } }
+                ],
+                cmdId: 16,
+                desc: "Get the feature data with a specific log index number.\nSend Temp: 0=Without, 1=With"
+            }
         },
         "0x6": { // Device
             "1_1": { name: "Adjust RTC (UTC)", type: "datetime", len: 4, subType: 1, cmdId: 1, desc: "Config Type 1" },
@@ -2889,6 +2911,18 @@ function updateGenParams() {
     let conf = DownlinkGenerator.DEFS[type][cmdKey];
     if (!conf) return;
 
+    // Update Command Description
+    let descEl = document.getElementById('cmdDesc');
+    if (descEl) {
+        if (conf.desc) {
+            descEl.innerHTML = conf.desc.split('\n').map(line =>
+                `<div class="mb-1"><i class="fa-solid fa-circle-info me-1"></i>${line}</div>`
+            ).join('');
+        } else {
+            descEl.innerHTML = '';
+        }
+    }
+
     if (conf.type === 'bitmask') {
         div.innerHTML = `<label class="text-secondary small mb-2">${conf.desc}</label><div class="grid-selector">` +
             conf.options.map(o => `
@@ -2908,17 +2942,25 @@ function updateGenParams() {
 
     if (conf.type === 'composite') {
         let html = `<label class="text-accent mb-2 small">Parameters:</label>`;
+
         conf.parts.forEach(p => {
             html += `<div class="mb-2"><label class="text-secondary small">${p.label}</label>`;
             if (p.type === 'datetime') html += `<input type="datetime-local" id="comp_${p.id}" class="form-control form-control-sm">`;
-            else {
+            else if (p.type === 'select') {
+                html += `<select id="comp_${p.id}" class="form-select">`;
+                for (let k in p.opts) html += `<option value="${k}">${p.opts[k]}</option>`;
+                html += `</select>`;
+            } else if (p.type === 'number') {
+                html += renderNumberInput('comp_' + p.id, 'Val', p.unit, p.max, '', p.desc);
+            } else {
                 html += `<input type="text" id="comp_${p.id}" class="form-control" placeholder="Val">`;
             }
             html += `</div>`;
         });
+
         div.innerHTML = html;
         initDates();
-        // Add event listeners for validation (basic)
+        // Add event listeners for validation
         div.querySelectorAll('input').forEach(el => {
             el.addEventListener('input', () => validateInput(el));
         });
@@ -2940,21 +2982,11 @@ function updateGenParams() {
                 <input type="number" step="0.01" class="form-control" id="genVal" placeholder="Value" data-max="${conf.max || ''}">
                 <span class="input-group-text">x${conf.scale}</span>
             </div>
-            <div class="form-text text-danger d-none" id="valWarning">Value exceeds limit!</div>
+            <div class="form-text text-danger d-none val-warning" id="valWarning">Value exceeds limit!</div>
         </div>`;
     } else if (conf.type === 'number') {
         let ph = conf.desc ? `e.g. ${conf.desc.split('e.g. ')[1] || 'Value'}` : 'Value';
-        html += `<div class="div-group">
-            <div class="input-group">
-                <select class="input-group-text fmt-select" id="fmt_genVal" onchange="validateInput(document.getElementById('genVal'))">
-                    <option value="dec">DEC</option>
-                    <option value="hex">HEX</option>
-                </select>
-                <input type="text" class="form-control" id="genVal" placeholder="${ph}" data-max="${conf.max || ''}">
-                ${conf.unit ? `<span class="input-group-text">${conf.unit}</span>` : ''}
-            </div>
-            <div class="form-text text-danger d-none" id="valWarning">Value exceeds limit!</div>
-        </div>`;
+        html += renderNumberInput('genVal', ph, conf.unit, conf.max, '', '');
     } else if (conf.type === 'datetime') {
         html += `<input type="datetime-local" class="form-control" id="genVal">`;
     }
@@ -2970,11 +3002,27 @@ function updateGenParams() {
     }
 }
 
-function validateInput(el) {
-    let max = parseFloat(el.getAttribute('data-max'));
-    if (isNaN(max)) return;
+function renderNumberInput(id, ph, unit, max, val, desc) {
+    let phText = ph ? ph : 'Value';
+    return `<div class="div-group">
+            <div class="input-group">
+                <select class="input-group-text fmt-select" id="fmt_${id}" onchange="validateInput(document.getElementById('${id}'))">
+                    <option value="dec">DEC</option>
+                    <option value="hex">HEX</option>
+                </select>
+                <input type="text" class="form-control" id="${id}" placeholder="${phText}" data-max="${max || ''}" value="${val || ''}">
+                ${unit ? `<span class="input-group-text">${unit}</span>` : ''}
+            </div>
+            <div class="form-text text-danger d-none val-warning">Value exceeds limit!</div>
+            ${desc ? `<div class="text-muted small mt-1"><i class="fa-solid fa-circle-info me-1"></i>${desc}</div>` : ''}
+        </div>`;
+}
 
+function validateInput(el) {
+    if (!el) return;
+    let max = parseFloat(el.getAttribute('data-max'));
     let valStr = el.value.trim();
+
     if (!valStr) {
         setWarning(el, false);
         return;
@@ -2991,15 +3039,20 @@ function validateInput(el) {
         valStr = valStr.replace(/^0x/i, '');
         // Validate hex string
         if (/[^0-9A-Fa-f]/.test(valStr)) {
-            // Invalid Hex
-            // Can imply warning or just ignore. 
+            setWarning(el, true, "Invalid Hex format!");
+            return;
         }
         val = parseInt(valStr, 16);
     } else {
+        // Strict Decimal Check
+        if (/[^0-9\.\-]/.test(valStr)) {
+            setWarning(el, true, "Invalid Decimal format!");
+            return;
+        }
         val = parseFloat(valStr);
     }
 
-    if (val > max) {
+    if (!isNaN(max) && val > max) {
         setWarning(el, true, `Max: ${markedMax(max, isHex)}`);
     } else {
         setWarning(el, false);
@@ -3013,7 +3066,7 @@ function markedMax(max, isHex) {
 
 function setWarning(el, show, msg) {
     let parent = el.closest('.div-group') || el.parentElement.parentElement;
-    let warn = parent.querySelector('#valWarning');
+    let warn = parent.querySelector('.val-warning') || parent.querySelector('#valWarning');
     if (!warn) return;
 
     if (show) {
@@ -3038,6 +3091,12 @@ function parseInputVal(el) {
 
 function runGenerator() {
     try {
+        // Validation Check
+        if (document.querySelectorAll('.val-warning:not(.d-none), #valWarning:not(.d-none)').length > 0) {
+            showToast("Please fix validation errors first!");
+            return;
+        }
+
         let type = document.getElementById('genType').value;
         let realType = document.getElementById('genCmd').getAttribute('data-real-type');
         let cmdKey = document.getElementById('genCmd').value;
@@ -3080,6 +3139,7 @@ function runGenerator() {
                 let el = document.getElementById('comp_' + p.id);
                 let val = el.value;
                 if (p.type === 'datetime') val = Math.floor(new Date(val).getTime() / 1000);
+                else if (p.type === 'number') val = parseInputVal(el);
 
                 params.data[p.id] = val;
             });

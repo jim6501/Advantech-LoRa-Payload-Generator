@@ -38,12 +38,33 @@ const DownlinkGenerator = {
         "0x5_4": { // Sensor (Accel)
             "1": { name: "Clear Vel. RMS Alarm", type: "fixed", val: 0, len: 1, cmdId: 1 },
             "5": { name: "Set Vel. RMS Limit", type: "float", scale: 100, len: 4, desc: "Value * 100 (Unit: 0.01 mm/s)", cmdId: 5, max: 42949672.95 },
-            "9": { name: "Get Log (Massive Data)", type: "number", len: 4, desc: "Log Index (0xFFFFFFFF = Latest)", cmdId: 9 },
-            "10": { name: "Read Log Part", type: "composite", parts: [{ id: "idx", type: "number", len: 4, label: "Idx" }, { id: "n", type: "number", len: 2, label: "N (Bytes)" }, { id: "k", type: "number", len: 2, label: "K" }], cmdId: 10 },
-            "11": { name: "Get Log (UTC)", type: "composite", parts: [{ id: "idx", type: "number", len: 4, label: "Idx" }, { id: "utc", type: "datetime", len: 4, label: "UTC" }], cmdId: 11 },
+            "9": { name: "Get FFT Data", type: "number", len: 4, desc: "Log Index (0xFFFFFFFF = Latest)", cmdId: 9, max: 4294967295 },
+            "10": { name: "Read N Bytes from Log", type: "composite", parts: [{ id: "idx", type: "number", len: 4, label: "Log Index", max: 4294967295, desc: "Log Index (0xFFFFFFFF = Latest)" }, { id: "n", type: "number", len: 2, label: "N (Bytes)", max: 65535 }, { id: "k", type: "number", len: 2, label: "K", max: 65535 }], cmdId: 10, desc: "Read the n bytes starting from the Kth byte position of log data with a specific log index" },
+            "11": { name: "Get FFT Data at Specific Time", type: "composite", parts: [{ id: "idx", type: "number", len: 4, label: "Log Index", max: 4294967295, desc: "Log Index (0xFFFFFFFF = Latest)" }, { id: "utc", type: "datetime", len: 4, label: "UTC" }], cmdId: 11 },
             "12": { name: "Enable Features", type: "bitmask", len: 2, options: [{ b: 4, l: "Displacement" }, { b: 3, l: "Standard Deviation" }, { b: 2, l: "Skewness" }, { b: 1, l: "Crest Factor" }, { b: 0, l: "Kurtosis" }], desc: "Enable specific features (Bit 4-0)", cmdId: 12, max: 65535 },
-            "14": { name: "Trigger Spec Cmd", type: "fixed", val: 0, len: 0, cmdId: 14 },
-            "15": { name: "Get Feature Data", type: "composite", parts: [{ id: "idx", type: "number", len: 4, label: "Idx" }, { id: "tmp", type: "number", len: 1, label: "Send Temp (1=Yes)" }], cmdId: 15 }
+            "14": { name: "Clear Log Query Cmds", type: "fixed", val: 0, len: 0, cmdId: 14, desc: "Clear all log massive data query commands stored in device" },
+            "15": {
+                name: "Get indexed frequency FFT data at specific Time",
+                type: "composite",
+                parts: [
+                    { id: "idx", type: "number", len: 4, label: "Log Index", max: 4294967295 },
+                    { id: "utc", type: "datetime", len: 4, label: "UTC Time" },
+                    { id: "freqStart", type: "number", len: 4, label: "Freq Start (Hz)", max: 4294967295 },
+                    { id: "freqEnd", type: "number", len: 4, label: "Freq End (Hz)", max: 4294967295 }
+                ],
+                cmdId: 15,
+                desc: "Get the log massive data with a specific log index number and specific frequency range at specific UTC time.\nNote: IF UTC time is 0 or less than current time of module, module will upload FFT data immediately."
+            },
+            "16": {
+                name: "Get Feature Data",
+                type: "composite",
+                parts: [
+                    { id: "idx", type: "number", len: 4, label: "Log Index", max: 4294967295, desc: "0xFFFFFFFF = Latest" },
+                    { id: "tmp", type: "select", len: 1, label: "Send Temp", opts: { 0: "Without", 1: "With" } }
+                ],
+                cmdId: 16,
+                desc: "Get the feature data with a specific log index number.\nSend Temp: 0=Without, 1=With"
+            }
         },
         "0x6": { // Device
             "1_1": { name: "Adjust RTC (UTC)", type: "datetime", len: 4, subType: 1, cmdId: 1, desc: "Config Type 1" },

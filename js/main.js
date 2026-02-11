@@ -131,6 +131,18 @@ function updateGenParams() {
     let conf = DownlinkGenerator.DEFS[type][cmdKey];
     if (!conf) return;
 
+    // Update Command Description
+    let descEl = document.getElementById('cmdDesc');
+    if (descEl) {
+        if (conf.desc) {
+            descEl.innerHTML = conf.desc.split('\n').map(line =>
+                `<div class="mb-1"><i class="fa-solid fa-circle-info me-1"></i>${line}</div>`
+            ).join('');
+        } else {
+            descEl.innerHTML = '';
+        }
+    }
+
     if (conf.type === 'bitmask') {
         div.innerHTML = `<label class="text-secondary small mb-2">${conf.desc}</label><div class="grid-selector">` +
             conf.options.map(o => `
@@ -150,17 +162,25 @@ function updateGenParams() {
 
     if (conf.type === 'composite') {
         let html = `<label class="text-accent mb-2 small">Parameters:</label>`;
+
         conf.parts.forEach(p => {
             html += `<div class="mb-2"><label class="text-secondary small">${p.label}</label>`;
             if (p.type === 'datetime') html += `<input type="datetime-local" id="comp_${p.id}" class="form-control form-control-sm">`;
-            else {
+            else if (p.type === 'select') {
+                html += `<select id="comp_${p.id}" class="form-select">`;
+                for (let k in p.opts) html += `<option value="${k}">${p.opts[k]}</option>`;
+                html += `</select>`;
+            } else if (p.type === 'number') {
+                html += renderNumberInput('comp_' + p.id, 'Val', p.unit, p.max, '', p.desc);
+            } else {
                 html += `<input type="text" id="comp_${p.id}" class="form-control" placeholder="Val">`;
             }
             html += `</div>`;
         });
+
         div.innerHTML = html;
         initDates();
-        // Add event listeners for validation (basic)
+        // Add event listeners for validation
         div.querySelectorAll('input').forEach(el => {
             el.addEventListener('input', () => validateInput(el));
         });
@@ -182,21 +202,11 @@ function updateGenParams() {
                 <input type="number" step="0.01" class="form-control" id="genVal" placeholder="Value" data-max="${conf.max || ''}">
                 <span class="input-group-text">x${conf.scale}</span>
             </div>
-            <div class="form-text text-danger d-none" id="valWarning">Value exceeds limit!</div>
+            <div class="form-text text-danger d-none val-warning" id="valWarning">Value exceeds limit!</div>
         </div>`;
     } else if (conf.type === 'number') {
         let ph = conf.desc ? `e.g. ${conf.desc.split('e.g. ')[1] || 'Value'}` : 'Value';
-        html += `<div class="div-group">
-            <div class="input-group">
-                <select class="input-group-text fmt-select" id="fmt_genVal" onchange="validateInput(document.getElementById('genVal'))">
-                    <option value="dec">DEC</option>
-                    <option value="hex">HEX</option>
-                </select>
-                <input type="text" class="form-control" id="genVal" placeholder="${ph}" data-max="${conf.max || ''}">
-                ${conf.unit ? `<span class="input-group-text">${conf.unit}</span>` : ''}
-            </div>
-            <div class="form-text text-danger d-none" id="valWarning">Value exceeds limit!</div>
-        </div>`;
+        html += renderNumberInput('genVal', ph, conf.unit, conf.max, '', '');
     } else if (conf.type === 'datetime') {
         html += `<input type="datetime-local" class="form-control" id="genVal">`;
     }
@@ -212,11 +222,27 @@ function updateGenParams() {
     }
 }
 
-function validateInput(el) {
-    let max = parseFloat(el.getAttribute('data-max'));
-    if (isNaN(max)) return;
+function renderNumberInput(id, ph, unit, max, val, desc) {
+    let phText = ph ? ph : 'Value';
+    return `<div class="div-group">
+            <div class="input-group">
+                <select class="input-group-text fmt-select" id="fmt_${id}" onchange="validateInput(document.getElementById('${id}'))">
+                    <option value="dec">DEC</option>
+                    <option value="hex">HEX</option>
+                </select>
+                <input type="text" class="form-control" id="${id}" placeholder="${phText}" data-max="${max || ''}" value="${val || ''}">
+                ${unit ? `<span class="input-group-text">${unit}</span>` : ''}
+            </div>
+            <div class="form-text text-danger d-none val-warning">Value exceeds limit!</div>
+            ${desc ? `<div class="text-muted small mt-1"><i class="fa-solid fa-circle-info me-1"></i>${desc}</div>` : ''}
+        </div>`;
+}
 
+function validateInput(el) {
+    if (!el) return;
+    let max = parseFloat(el.getAttribute('data-max'));
     let valStr = el.value.trim();
+
     if (!valStr) {
         setWarning(el, false);
         return;
@@ -233,15 +259,20 @@ function validateInput(el) {
         valStr = valStr.replace(/^0x/i, '');
         // Validate hex string
         if (/[^0-9A-Fa-f]/.test(valStr)) {
-            // Invalid Hex
-            // Can imply warning or just ignore. 
+            setWarning(el, true, "Invalid Hex format!");
+            return;
         }
         val = parseInt(valStr, 16);
     } else {
+        // Strict Decimal Check
+        if (/[^0-9\.\-]/.test(valStr)) {
+            setWarning(el, true, "Invalid Decimal format!");
+            return;
+        }
         val = parseFloat(valStr);
     }
 
-    if (val > max) {
+    if (!isNaN(max) && val > max) {
         setWarning(el, true, `Max: ${markedMax(max, isHex)}`);
     } else {
         setWarning(el, false);
@@ -255,7 +286,7 @@ function markedMax(max, isHex) {
 
 function setWarning(el, show, msg) {
     let parent = el.closest('.div-group') || el.parentElement.parentElement;
-    let warn = parent.querySelector('#valWarning');
+    let warn = parent.querySelector('.val-warning') || parent.querySelector('#valWarning');
     if (!warn) return;
 
     if (show) {
@@ -280,6 +311,12 @@ function parseInputVal(el) {
 
 function runGenerator() {
     try {
+        // Validation Check
+        if (document.querySelectorAll('.val-warning:not(.d-none), #valWarning:not(.d-none)').length > 0) {
+            showToast("Please fix validation errors first!");
+            return;
+        }
+
         let type = document.getElementById('genType').value;
         let realType = document.getElementById('genCmd').getAttribute('data-real-type');
         let cmdKey = document.getElementById('genCmd').value;
@@ -322,6 +359,7 @@ function runGenerator() {
                 let el = document.getElementById('comp_' + p.id);
                 let val = el.value;
                 if (p.type === 'datetime') val = Math.floor(new Date(val).getTime() / 1000);
+                else if (p.type === 'number') val = parseInputVal(el);
 
                 params.data[p.id] = val;
             });
